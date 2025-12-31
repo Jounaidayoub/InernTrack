@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Database Status - InternTrack{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-xl font-semibold">Database Status</h2>
+  <p class="text-sm text-gray-500">Overview of the local SQLite database</p>
+</div>
+
+<div class="bg-white shadow rounded overflow-hidden p-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-2">File</h3>
+      <div class="text-sm text-gray-800">Path: <span class="font-mono text-xs text-gray-600">{{ db_file }}</span></div>
+      <div class="text-sm text-gray-800">Size: <strong>{{ (file_size | default('N/A')) }}</strong> bytes</div>
+      <div class="text-sm text-gray-800">Estimated DB bytes (PRAGMA): <strong>{{ (est_bytes | default('N/A')) }}</strong></div>
+      <div class="text-sm text-gray-800">Page count: <strong>{{ page_count | default('N/A') }}</strong> — Page size: <strong>{{ page_size | default('N/A') }}</strong></div>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-medium text-gray-700 mb-2">Tables</h3>
+      <table class="min-w-full text-sm">
+        <thead class="text-xs text-gray-600">
+          <tr><th class="p-2 text-left">Table</th><th class="p-2 text-left">Rows</th></tr>
+        </thead>
+        <tbody>
+          {% for t, c in stats.items() %}
+          <tr class="border-t">
+            <td class="p-2">{{ t }}</td>
+            <td class="p-2 font-medium">{{ c }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <a href="/api/db_status" class="btn-outline-accent px-3 py-2 rounded">View JSON</a>
+    <a href="/" class="ml-2 nav-link">Back</a>
+  </div>
+</div>
+{% endblock %}

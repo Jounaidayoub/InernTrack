@@ -1,0 +1,50 @@
+/* Custom minimal styles for the UI */
+:root {
+	--sage: #9CAF88; /* approachability */
+	--forest: #355E3B; /* trust / luxury */
+	--mint: #98FB98; /* light, airy */
+	--accent: var(--sage);
+	--accent-dark: var(--forest);
+	--accent-light: var(--mint);
+}
+
+body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+.prose { white-space: pre-wrap; }
+#modal, #companyModal { z-index: 60; }
+
+/* Branding */
+.brand { color: var(--forest); font-weight: 700; }
+.nav-link { color: #6b7280; text-decoration: none; }
+.nav-link:hover { color: var(--accent); }
+
+/* Header gradient using palette (subtle) */
+.header-gradient { background: linear-gradient(90deg, rgba(152,251,152,0.06), rgba(156,175,136,0.06)); }
+
+/* Buttons */
+.btn-accent {
+	background-color: var(--accent);
+	color: white;
+	transition: background-color .15s ease;
+}
+.btn-accent:hover { background-color: var(--accent-dark); }
+
+.btn-accent-dark {
+	background-color: var(--accent-dark);
+	color: white;
+	transition: background-color .15s ease;
+}
+.btn-accent-dark:hover { background-color: #24482b; }
+
+.btn-outline-accent {
+	background: transparent;
+	border: 1px solid var(--accent);
+	color: var(--accent-dark);
+}
+
+/* Focus ring helper */
+.focus-accent:focus {
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(53,94,59,0.12);
+	border-color: var(--accent-dark);
+}
+

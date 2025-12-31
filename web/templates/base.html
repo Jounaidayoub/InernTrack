@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{% block title %}Internship Tracker{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pQ6Q6..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body class="bg-gray-50 text-gray-800 font-sans">
+    <nav class="bg-white shadow-sm">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <a href="/" class="text-2xl font-bold brand">InternTrack</a>
+          <a href="/internships" class="text-sm nav-link">Internships</a>
+          <a href="/companies" class="text-sm nav-link">Companies</a>
+          <a href="/db" class="text-sm nav-link">DB</a>
+        </div>
+        <div>
+          <input id="globalSearch" placeholder="Search..." class="border rounded px-3 py-2" />
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-6">
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

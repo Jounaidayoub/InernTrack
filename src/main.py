@@ -33,7 +33,6 @@ from .logger_setup import get_logger
 from .config import settings
 from .jobspy_client import fetch_jobs
 from .normalizer import normalize_job
-from .dedupe import dedupe_by_url
 from .database_client import DatabaseClient
 import json
 
@@ -76,12 +75,6 @@ class Pipeline:
         logger.info("Filtered internships: %d", len(interns))
         return interns
 
-    def dedupe(self, interns):
-        """Remove duplicate internships by URL."""
-        unique = dedupe_by_url(interns)
-        logger.info("After dedupe: %d", len(unique))
-        return unique
-
     def process_job(self, job):
         """Process a single job: log, optionally dry-run, and persist to DB."""
         logger.info("Processing: %s - %s", job.get("company"), job.get("title"))
@@ -94,7 +87,6 @@ class Pipeline:
         pretty = json.dumps(job, indent=2, ensure_ascii=False, sort_keys=True, default=str)
         logger.info("Job details:\n%s", pretty)
 
-        self.append_job_csv(job)
         result = self.db.ensure_company_and_internship(job)
         return bool(result)
 
@@ -148,15 +140,14 @@ class Pipeline:
 
         raw_jobs = self.fetch_raw_jobs()
         interns = self.normalize_and_filter(raw_jobs)
-        unique = self.dedupe(interns)
 
-        if not unique:
+        if not interns:
             logger.info("No unique internship offers to process")
             return
 
-        logger.debug(unique);
+        logger.debug(interns);
 
-        for job in unique:
+        for job in interns:
             try:
                 ok = self.process_job(job)
                 if ok:
@@ -165,7 +156,7 @@ class Pipeline:
                 logger.exception("Failed to sync job")
 
         self.show_stats()
-        logger.info("Pipeline completed. Successfully processed: %d/%d jobs", self.success_count, len(unique))
+        logger.info("Pipeline completed. Successfully processed: %d/%d jobs", self.success_count, len(interns))
 
 
 if __name__ == "__main__":

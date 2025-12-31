@@ -26,6 +26,7 @@ Author: El Moujahid Marouane
 Version: 1.0
 """
 
+# TODO: immigrate to pg server 
 import sqlite3
 import os
 from datetime import datetime
@@ -319,6 +320,65 @@ class DatabaseClient:
                 stats[table] = cursor.fetchone()['count']
             
             return stats
+
+    def list_internships(self, search: str | None = None, limit: int = 25, offset: int = 0):
+        """Return a list of internships joined with company name.
+        Parameters:
+        - search: optional text to search in title, company or location
+        - limit, offset: pagination
+
+        Returns: list of dict rows
+        """
+    
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            base = (
+                "SELECT internships.id, internships.title, internships.description, "
+                "internships.location, internships.url, internships.status, internships.created_at, companies.name as company "
+                "FROM internships LEFT JOIN companies ON internships.company_id = companies.id"
+            )
+            params = []
+            if search:
+                base += " WHERE (internships.title LIKE ? OR companies.name LIKE ? OR internships.location LIKE ?)"
+                q = f"%{search}%"
+                params.extend([q, q, q])
+
+            # base += " ORDER BY internships.created_at DESC LIMIT ? OFFSET ?"
+            # params.extend([limit, offset])
+
+            cursor.execute(base, params)
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
+
+    def list_companies(self, search: str | None = None, industry: str | None = None,
+                       country: str | None = None, limit: int = 50, offset: int = 0):
+        """Return a paginated list of companies with optional filters."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            base = ("SELECT id, name, website, industry, country, description, created_at "
+                    "FROM companies")
+            params = []
+            clauses = []
+            if search:
+                clauses.append("(name LIKE ? OR description LIKE ?)")
+                q = f"%{search}%"
+                params.extend([q, q])
+            if industry:
+                clauses.append("industry = ?")
+                params.append(industry)
+            if country:
+                clauses.append("country = ?")
+                params.append(country)
+
+            if clauses:
+                base += " WHERE " + " AND ".join(clauses)
+
+            base += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            cursor.execute(base, params)
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
     
     def close(self):
         """Close database connection (for cleanup)"""

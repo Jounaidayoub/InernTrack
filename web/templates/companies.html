@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Companies - InternTrack{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-xl font-semibold">Companies</h2>
+  <p class="text-sm text-gray-500">Browse company profiles</p>
+</div>
+
+<div class="bg-white shadow rounded overflow-hidden p-4">
+  <div class="flex items-center justify-between mb-4">
+    <input id="companySearch" placeholder="Search companies or industry" class="border rounded px-3 py-2 w-80" />
+    <div>
+      <button id="exportCompanies" class="bg-indigo-600 text-white px-3 py-2 rounded">Export CSV</button>
+    </div>
+  </div>
+  <div id="companyList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+  <div id="companyLoading" class="py-6 text-center">Loading...</div>
+  <div id="companyPagination" class="mt-4"></div>
+</div>
+
+<div id="companyModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+  <div id="companyModalContent" class="bg-white rounded shadow max-w-3xl w-full p-6"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+window.PAGE_TYPE = 'companies';
+</script>
+{% endblock %}
