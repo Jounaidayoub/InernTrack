@@ -387,10 +387,10 @@ function renderRows(items) {
       <td class="p-3">
         <div class="flex gap-1">
           <button
-            class="openBtn btn-accent text-white px-2 py-1 rounded text-xs"
+            class="showModal btn-accent text-white px-2 py-1 rounded text-xs"
             data-id="${it.id}"
             onclick="event.stopPropagation()"
-            title="View Description"
+    
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

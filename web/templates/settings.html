@@ -1,0 +1,843 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Internship Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-3xl font-bold mb-2">
+        <i class="fas fa-cog text-blue-600 mr-2"></i>
+        Scraping Settings
+    </h1>
+    <p class="text-gray-600">Configure job scraping parameters and run the scraper</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Settings Form -->
+    <div class="lg:col-span-2">
+        <form id="settingsForm" class="space-y-6">
+            <!-- Search Configuration -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-search text-blue-500 mr-2"></i>
+                    Search Configuration
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Search Terms -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="search_terms">
+                            Search Terms
+                            <span class="text-gray-400 font-normal">(comma-separated)</span>
+                        </label>
+                        <textarea 
+                            id="search_terms" 
+                            name="search_terms" 
+                            rows="3"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="software engineer intern, data science intern, web developer intern"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Job titles or keywords to search for</p>
+                    </div>
+                    
+                    <!-- Locations -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="locations">
+                            Locations
+                            <span class="text-gray-400 font-normal">(comma-separated)</span>
+                        </label>
+                        <textarea 
+                            id="locations" 
+                            name="locations" 
+                            rows="2"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="San Francisco, CA, New York, NY, Remote"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Locations to search in</p>
+                    </div>
+                    
+                    <!-- Job Sites -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Job Sites
+                        </label>
+                        <div class="flex flex-wrap gap-3" id="site_names_container">
+                            <!-- Checkboxes will be populated by JS -->
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Select job boards to scrape from</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Filters -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-filter text-green-500 mr-2"></i>
+                    Job Filters
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Job Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="job_type">
+                            Job Type
+                        </label>
+                        <select 
+                            id="job_type" 
+                            name="job_type"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">Any</option>
+                            <option value="internship">Internship</option>
+                            <option value="fulltime">Full Time</option>
+                            <option value="parttime">Part Time</option>
+                            <option value="contract">Contract</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Remote -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="is_remote">
+                            Remote
+                        </label>
+                        <select 
+                            id="is_remote" 
+                            name="is_remote"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">Any</option>
+                            <option value="true">Remote Only</option>
+                            <option value="false">On-site Only</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Country (Indeed) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="country_indeed">
+                            Country (Indeed)
+                        </label>
+                        <select 
+                            id="country_indeed" 
+                            name="country_indeed"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        
+                            >
+                            <option value="Morocco" >Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Experience Levels -->
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Experience Levels
+                        </label>
+                        <div class="flex flex-wrap gap-3" id="experience_levels_container">
+                            <!-- Checkboxes will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scraping Options -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-sliders-h text-purple-500 mr-2"></i>
+                    Scraping Options
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Results Wanted -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="results_wanted">
+                            Results Per Search
+                        </label>
+                        <input 
+                            type="number" 
+                            id="results_wanted" 
+                            name="results_wanted"
+                            min="1" 
+                            max="500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Max results per search term (1-500)</p>
+                    </div>
+                    
+                    <!-- Hours Old -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="hours_old">
+                            Max Job Age (hours)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="hours_old" 
+                            name="hours_old"
+                            min="1" 
+                            max="720"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Only get jobs posted within this time</p>
+                    </div>
+                    
+                    <!-- Description Format -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="description_format">
+                            Description Format
+                        </label>
+                        <select 
+                            id="description_format" 
+                            name="description_format"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="markdown">Markdown</option>
+                            <option value="html">HTML</option>
+                            <option value="text">Plain Text</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Boolean Options -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="linkedin_fetch_description" 
+                                name="linkedin_fetch_description"
+                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span class="text-sm text-gray-700">Fetch LinkedIn descriptions</span>
+                        </label>
+                        
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="easy_apply" 
+                                name="easy_apply"
+                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span class="text-sm text-gray-700">Easy Apply only (LinkedIn)</span>
+                        </label>
+                        
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="dry_run" 
+                                name="dry_run"
+                                class="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                            />
+                            <span class="text-sm text-gray-700">Dry Run (no database writes)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center cursor-pointer" onclick="toggleAdvanced()">
+                    <i class="fas fa-cogs text-gray-500 mr-2"></i>
+                    Advanced Options
+                    <i id="advancedToggleIcon" class="fas fa-chevron-down ml-2 text-sm transition-transform"></i>
+                </h2>
+                <div id="advancedOptions" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Proxy -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" for="proxy">
+                                Proxy URL
+                            </label>
+                            <input 
+                                type="text" 
+                                id="proxy" 
+                                name="proxy"
+                                placeholder="http://proxy:port or socks5://proxy:port"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        
+                        <!-- Verbose -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" for="verbose">
+                                Log Level
+                            </label>
+                            <select 
+                                id="verbose" 
+                                name="verbose"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="0">Normal</option>
+                                <option value="1">Verbose</option>
+                                <option value="2">Debug</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <button 
+                    type="submit" 
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center"
+                >
+                    <i class="fas fa-save mr-2"></i>
+                    Save Settings
+                </button>
+                <button 
+                    type="button" 
+                    onclick="resetSettings()"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+                >
+                    <i class="fas fa-undo mr-2"></i>
+                    Reset to Defaults
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scraping Control & Logs -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Scrape Control -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-play-circle text-green-500 mr-2"></i>
+                Run Scraper
+            </h2>
+            
+            <!-- Status Display -->
+            <div id="scrapeStatus" class="mb-4 p-4 rounded-lg bg-gray-100">
+                <div class="flex items-center justify-between">
+                    <span class="font-medium">Status:</span>
+                    <span id="statusBadge" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700">
+                        Idle
+                    </span>
+                </div>
+                <div id="scrapeProgress" class="hidden mt-3">
+                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                        <span id="progressText">Starting...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="scrapeStats" class="hidden mt-3 text-sm text-gray-600">
+                    <div class="flex justify-between">
+                        <span>Jobs Found:</span>
+                        <span id="jobsFound">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>New Jobs:</span>
+                        <span id="newJobs">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="flex gap-3">
+                <button 
+                    id="startScrapeBtn"
+                    onclick="startScrape()"
+                    class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <i class="fas fa-play mr-2"></i>
+                    Start Scraping
+                </button>
+                <button 
+                    id="stopScrapeBtn"
+                    onclick="stopScrape()"
+                    class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <i class="fas fa-stop mr-2"></i>
+                    Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Log Viewer -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-terminal text-gray-500 mr-2"></i>
+                    Live Logs
+                </h2>
+                <button 
+                    onclick="clearLogs()"
+                    class="text-sm text-gray-500 hover:text-gray-700"
+                >
+                    <i class="fas fa-trash mr-1"></i>
+                    Clear
+                </button>
+            </div>
+            <div 
+                id="logViewer" 
+                class="bg-gray-900 text-green-400 rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs"
+            >
+                <div class="text-gray-500">Waiting for scraper to start...</div>
+            </div>
+            <label class="flex items-center mt-3 text-sm text-gray-600 cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    id="autoScroll" 
+                    checked
+                    class="mr-2"
+                />
+                Auto-scroll to bottom
+            </label>
+        </div>
+
+        <!-- Scrape History -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-history text-blue-500 mr-2"></i>
+                Recent Scrape Runs
+            </h2>
+            <div id="scrapeHistory" class="space-y-3">
+                <div class="text-gray-500 text-sm">Loading history...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Settings Management
+let settings = {};
+let logIndex = 0;
+let pollInterval = null;
+let isRunning = false;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    loadScrapeHistory();
+    checkScrapeStatus();
+});
+
+// Load settings from API
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        settings = data.settings;
+        populateForm(settings);
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showNotification('Failed to load settings', 'error');
+    }
+}
+
+// Populate form with settings values
+function populateForm(settings) {
+    // Multi-select checkboxes for site_names
+    const sitesContainer = document.getElementById('site_names_container');
+    const siteOptions = ['linkedin', 'indeed', 'glassdoor', 'google', 'zip_recruiter'];
+    const selectedSites = settings.site_names?.value || [];
+    
+    sitesContainer.innerHTML = siteOptions.map(site => `
+        <label class="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
+            <input 
+                type="checkbox" 
+                name="site_names" 
+                value="${site}"
+                ${selectedSites.includes(site) ? 'checked' : ''}
+                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span class="text-sm capitalize">${site.replace('_', ' ')}</span>
+        </label>
+    `).join('');
+    
+    // Multi-select checkboxes for experience_levels
+    const expContainer = document.getElementById('experience_levels_container');
+    const expOptions = ['internship', 'entry', 'mid', 'senior', 'executive'];
+    const selectedExp = settings.experience_levels?.value || [];
+    
+    expContainer.innerHTML = expOptions.map(level => `
+        <label class="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
+            <input 
+                type="checkbox" 
+                name="experience_levels" 
+                value="${level}"
+                ${selectedExp.includes(level) ? 'checked' : ''}
+                class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <span class="text-sm capitalize">${level}</span>
+        </label>
+    `).join('');
+    
+    // Text/Textarea fields
+    ['search_terms', 'locations', 'proxy'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            const value = settings[field].value;
+            el.value = Array.isArray(value) ? value.join(', ') : (value || '');
+        }
+    });
+    
+    // Select fields
+    ['job_type', 'is_remote', 'country_indeed', 'description_format', 'verbose'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.value = settings[field].value || '';
+        }
+    });
+    
+    // Number fields
+    ['results_wanted', 'hours_old'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.value = settings[field].value || '';
+        }
+    });
+    
+    // Boolean fields
+    ['linkedin_fetch_description', 'easy_apply', 'dry_run'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.checked = settings[field].value === true || settings[field].value === 'true';
+        }
+    });
+}
+
+// Save settings
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const settingsData = {};
+    
+    // Handle text/textarea fields that are comma-separated lists
+    ['search_terms', 'locations'].forEach(field => {
+        const value = formData.get(field);
+        if (value) {
+            settingsData[field] = value.split(',').map(s => s.trim()).filter(s => s);
+        }
+    });
+    
+    // Handle multi-select checkboxes
+    settingsData.site_names = formData.getAll('site_names');
+    settingsData.experience_levels = formData.getAll('experience_levels');
+    
+    // Handle simple fields
+    ['job_type', 'is_remote', 'country_indeed', 'description_format', 'proxy'].forEach(field => {
+        const value = formData.get(field);
+        if (value !== null) {
+            settingsData[field] = value;
+        }
+    });
+    
+    // Handle number fields
+    ['results_wanted', 'hours_old', 'verbose'].forEach(field => {
+        const value = formData.get(field);
+        if (value) {
+            settingsData[field] = parseInt(value);
+        }
+    });
+    
+    // Handle boolean fields
+    ['linkedin_fetch_description', 'easy_apply', 'dry_run'].forEach(field => {
+        settingsData[field] = document.getElementById(field)?.checked || false;
+    });
+    
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settingsData)
+        });
+        
+        if (response.ok) {
+            showNotification('Settings saved successfully!', 'success');
+            loadSettings();
+        } else {
+            throw new Error('Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification('Failed to save settings', 'error');
+    }
+});
+
+// Reset settings to defaults
+async function resetSettings() {
+    if (!confirm('Are you sure you want to reset all settings to defaults?')) return;
+    
+    try {
+        const response = await fetch('/api/settings/reset', { method: 'POST' });
+        if (response.ok) {
+            showNotification('Settings reset to defaults', 'success');
+            loadSettings();
+        } else {
+            throw new Error('Failed to reset settings');
+        }
+    } catch (error) {
+        console.error('Error resetting settings:', error);
+        showNotification('Failed to reset settings', 'error');
+    }
+}
+
+// Toggle advanced options
+function toggleAdvanced() {
+    const options = document.getElementById('advancedOptions');
+    const icon = document.getElementById('advancedToggleIcon');
+    options.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+// Scraping Control
+async function startScrape() {
+    try {
+        const response = await fetch('/api/scrape/start', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Scraper started!', 'success');
+            isRunning = true;
+            updateScrapeUI(true);
+            startPolling();
+            clearLogs();
+        } else {
+            showNotification(data.error || 'Failed to start scraper', 'error');
+        }
+    } catch (error) {
+        console.error('Error starting scrape:', error);
+        showNotification('Failed to start scraper', 'error');
+    }
+}
+
+async function stopScrape() {
+    try {
+        const response = await fetch('/api/scrape/stop', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Scraper stopped', 'warning');
+        }
+    } catch (error) {
+        console.error('Error stopping scrape:', error);
+    }
+}
+
+function updateScrapeUI(running) {
+    const startBtn = document.getElementById('startScrapeBtn');
+    const stopBtn = document.getElementById('stopScrapeBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const progressDiv = document.getElementById('scrapeProgress');
+    
+    startBtn.disabled = running;
+    stopBtn.disabled = !running;
+    
+    if (running) {
+        statusBadge.textContent = 'Running';
+        statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
+        progressDiv.classList.remove('hidden');
+    } else {
+        statusBadge.textContent = 'Idle';
+        statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700';
+        progressDiv.classList.add('hidden');
+    }
+}
+
+// Check initial scrape status
+async function checkScrapeStatus() {
+    try {
+        const response = await fetch('/api/scrape/status');
+        const data = await response.json();
+        
+        isRunning = data.is_running;
+        updateScrapeUI(data.is_running);
+        
+        if (data.is_running) {
+            startPolling();
+        }
+        
+        // Update stats if available
+        if (data.stats) {
+            updateStats(data.stats);
+        }
+    } catch (error) {
+        console.error('Error checking status:', error);
+    }
+}
+
+// Poll for logs and status
+function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    
+    pollInterval = setInterval(async () => {
+        try {
+            // Get logs
+            const logsResponse = await fetch(`/api/scrape/logs?since=${logIndex}`);
+            const logsData = await logsResponse.json();
+            
+            if (logsData.logs && logsData.logs.length > 0) {
+                appendLogs(logsData.logs);
+                logIndex = logsData.next_index;
+            }
+            
+            // Get status
+            const statusResponse = await fetch('/api/scrape/status');
+            const statusData = await statusResponse.json();
+            
+            if (!statusData.is_running && isRunning) {
+                // Scrape finished
+                isRunning = false;
+                updateScrapeUI(false);
+                stopPolling();
+                loadScrapeHistory();
+                showNotification('Scraping completed!', 'success');
+            }
+            
+            if (statusData.stats) {
+                updateStats(statusData.stats);
+            }
+            
+            if (statusData.progress) {
+                updateProgress(statusData.progress);
+            }
+        } catch (error) {
+            console.error('Error polling:', error);
+        }
+    }, 1000);
+}
+
+function stopPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+}
+
+function updateProgress(progress) {
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressText = document.getElementById('progressText');
+    
+    const percent = Math.round(progress.percent || 0);
+    progressBar.style.width = `${percent}%`;
+    progressPercent.textContent = `${percent}%`;
+    progressText.textContent = progress.message || 'Processing...';
+}
+
+function updateStats(stats) {
+    document.getElementById('scrapeStats').classList.remove('hidden');
+    document.getElementById('jobsFound').textContent = stats.jobs_found || 0;
+    document.getElementById('newJobs').textContent = stats.new_jobs || 0;
+}
+
+// Log Viewer
+function appendLogs(logs) {
+    const viewer = document.getElementById('logViewer');
+    const autoScroll = document.getElementById('autoScroll').checked;
+    
+    // Remove placeholder if exists
+    const placeholder = viewer.querySelector('.text-gray-500');
+    if (placeholder && logs.length > 0) {
+        placeholder.remove();
+    }
+    
+    logs.forEach(log => {
+        const line = document.createElement('div');
+        line.className = getLogClass(log.level);
+        line.innerHTML = `<span class="text-gray-500">[${log.time}]</span> ${escapeHtml(log.message)}`;
+        viewer.appendChild(line);
+    });
+    
+    if (autoScroll) {
+        viewer.scrollTop = viewer.scrollHeight;
+    }
+}
+
+function getLogClass(level) {
+    switch (level?.toUpperCase()) {
+        case 'ERROR': return 'text-red-400';
+        case 'WARNING': return 'text-yellow-400';
+        case 'INFO': return 'text-green-400';
+        case 'DEBUG': return 'text-gray-400';
+        default: return 'text-green-400';
+    }
+}
+
+function clearLogs() {
+    const viewer = document.getElementById('logViewer');
+    viewer.innerHTML = '<div class="text-gray-500">Waiting for scraper to start...</div>';
+    logIndex = 0;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Scrape History
+async function loadScrapeHistory() {
+    try {
+        const response = await fetch('/api/scrape/history');
+        const data = await response.json();
+        
+        console.log(data
+        )
+        const container = document.getElementById('scrapeHistory');
+        
+        if (!data.runs || data.runs.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 text-sm">No scrape runs yet</div>';
+            return;
+        }
+        
+        container.innerHTML = data.runs.map(run => `
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium">${formatDate(run.started_at)}</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(run.status)}">
+                        ${run.status}
+                    </span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    ${run.jobs_found || 0} jobs found • ${run.new_jobs || 0} new
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading history:', error);
+    }
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'completed': return 'bg-green-100 text-green-700';
+        case 'failed': return 'bg-red-100 text-red-700';
+        case 'running': return 'bg-blue-100 text-blue-700';
+        case 'stopped': return 'bg-yellow-100 text-yellow-700';
+        default: return 'bg-gray-100 text-gray-700';
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+}
+
+// Notification helper
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500',
+        info: 'bg-blue-500'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('opacity-0');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+</script>
+{% endblock %}

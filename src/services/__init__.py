@@ -10,6 +10,8 @@ Services:
 - ContactService: Contact management
 - DatabaseService: Database status and statistics
 - ExportService: Data export operations
+- SettingsService: Scraping settings management
+- ScrapeService: Scrape operations and logging
 
 Author: El Moujahid Marouane
 Version: 2.0
@@ -21,6 +23,8 @@ from .company_service import CompanyService
 from .contact_service import ContactService
 from .database_service import DatabaseService
 from .export_service import ExportService
+from .settings_service import SettingsService
+from .scrape_service import ScrapeService
 
 __all__ = [
     'ServiceResult',
@@ -29,4 +33,6 @@ __all__ = [
     'ContactService',
     'DatabaseService',
     'ExportService',
+    'SettingsService',
+    'ScrapeService',
 ]
