@@ -1,9 +1,256 @@
 {% extends 'base.html' %}
-{% block title %}Internship Detail - InternTrack{% endblock %}
+{% block title %}{{ internship.title }} - InternTrack{% endblock %}
 {% block content %}
-<div id="detail" class="bg-white shadow rounded p-6">
-  <h2 id="title" class="text-xl font-semibold"></h2>
-  <div id="meta" class="text-sm text-gray-500 mb-4"></div>
-  <div id="desc" class="prose"></div>
+<div class="mb-4">
+  <a href="/internships" class="text-sm text-gray-500 hover:text-forest flex items-center gap-1">
+    <i class="fas fa-arrow-left"></i> Back to Internships
+  </a>
 </div>
+
+<div class="bg-white shadow rounded-lg overflow-hidden">
+  <!-- Header -->
+  <div class="header-gradient p-6 border-b">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div class="flex items-start gap-4">
+        {% if internship.company_logo %}
+        <img src="{{ internship.company_logo }}" alt="{{ internship.company_name }}" class="w-16 h-16 rounded-lg object-cover bg-white shadow">
+        {% else %}
+        <div class="w-16 h-16 rounded-lg bg-sage-light flex items-center justify-center shadow">
+          <i class="fas fa-building text-2xl text-forest"></i>
+        </div>
+        {% endif %}
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">{{ internship.title }}</h1>
+          <a href="/company/{{ internship.company_id }}" class="text-lg text-forest hover:underline">
+            {{ internship.company_name or 'Unknown Company' }}
+          </a>
+          <div class="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+            {% if internship.location %}
+            <span><i class="fas fa-map-marker-alt mr-1 text-red-400"></i> {{ internship.location }}</span>
+            {% endif %}
+            {% if internship.site %}
+            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium">{{ internship.site }}</span>
+            {% endif %}
+            {% if internship.is_remote %}
+            <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-medium">
+              <i class="fas fa-home mr-1"></i>Remote
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="px-3 py-1 rounded-full text-sm font-medium 
+          {% if internship.status == 'open' %}bg-green-100 text-green-800
+          {% elif internship.status == 'closed' %}bg-red-100 text-red-800
+          {% else %}bg-gray-100 text-gray-800{% endif %}">
+          {{ (internship.status or 'unknown')|capitalize }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Info Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 border-b">
+    <!-- Salary -->
+    <div class="bg-white p-4 rounded-lg shadow-sm">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Salary</div>
+      <div class="text-lg font-semibold text-gray-900">
+        {% if internship.salary_min or internship.salary_max %}
+          {% if internship.salary_min %}{{ internship.salary_min|int }}{% endif %}
+          {% if internship.salary_min and internship.salary_max %} - {% endif %}
+          {% if internship.salary_max %}{{ internship.salary_max|int }}{% endif %}
+          <span class="text-sm font-normal text-gray-500">{{ internship.salary_currency or 'USD' }}/{{ internship.salary_interval or 'year' }}</span>
+        {% else %}
+          <span class="text-gray-400">Not specified</span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Job Type -->
+    <div class="bg-white p-4 rounded-lg shadow-sm">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Job Type</div>
+      <div class="text-lg font-semibold text-gray-900">
+        {{ internship.job_type|capitalize if internship.job_type else 'Internship' }}
+      </div>
+    </div>
+    
+    <!-- Date Posted -->
+    <div class="bg-white p-4 rounded-lg shadow-sm">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Date Posted</div>
+      <div class="text-lg font-semibold text-gray-900">
+        {{ internship.date_posted or 'Unknown' }}
+      </div>
+    </div>
+    
+    <!-- Experience Level -->
+    <div class="bg-white p-4 rounded-lg shadow-sm">
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Experience</div>
+      <div class="text-lg font-semibold text-gray-900">
+        {{ internship.experience_level|capitalize if internship.experience_level else 'Entry Level' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="p-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Description -->
+      <div class="lg:col-span-2 space-y-6">
+        <div>
+          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+            <i class="fas fa-file-alt text-forest"></i> Job Description
+          </h2>
+          <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg" id="description">
+            {{ internship.description|safe if internship.description else 'No description available.' }}
+          </div>
+        </div>
+
+        {% if internship.requirements %}
+        <div>
+          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+            <i class="fas fa-clipboard-list text-forest"></i> Requirements
+          </h2>
+          <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg">
+            {{ internship.requirements|safe }}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if internship.benefits %}
+        <div>
+          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+            <i class="fas fa-gift text-forest"></i> Benefits
+          </h2>
+          <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg">
+            {{ internship.benefits|safe }}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-4">
+        <!-- Apply Buttons -->
+        <div class="bg-white border rounded-lg p-4">
+          {% if internship.job_url %}
+          <a href="{{ internship.job_url }}" target="_blank" rel="noopener noreferrer" 
+             class="block w-full btn-accent text-center py-3 rounded-lg font-medium transition">
+            <i class="fas fa-external-link-alt mr-2"></i> View on {{ internship.site or 'Job Board' }}
+          </a>
+          {% endif %}
+          {% if internship.job_url_direct %}
+          <a href="{{ internship.job_url_direct }}" target="_blank" rel="noopener noreferrer" 
+             class="block w-full mt-2 border-2 border-forest text-forest text-center py-3 rounded-lg font-medium hover:bg-sage-light transition">
+            <i class="fas fa-paper-plane mr-2"></i> Apply Directly
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Job Details -->
+        <div class="bg-white border rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-info-circle text-forest"></i> Job Details
+          </h3>
+          <dl class="space-y-2 text-sm">
+            {% if internship.duration %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Duration</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.duration }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.start_date %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Start Date</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.start_date }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.application_deadline %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Deadline</dt>
+              <dd class="text-red-600 font-semibold">{{ internship.application_deadline }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.job_level %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Level</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.job_level }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.job_function %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Function</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.job_function }}</dd>
+            </div>
+            {% endif %}
+            <div class="flex justify-between py-1">
+              <dt class="text-gray-500">Scraped</dt>
+              <dd class="text-gray-500 text-xs">{{ internship.date_scraped }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Location Details -->
+        <div class="bg-white border rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-map-marker-alt text-forest"></i> Location
+          </h3>
+          <dl class="space-y-2 text-sm">
+            {% if internship.city %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">City</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.city }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.state %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">State</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.state }}</dd>
+            </div>
+            {% endif %}
+            {% if internship.country %}
+            <div class="flex justify-between py-1 border-b border-gray-100">
+              <dt class="text-gray-500">Country</dt>
+              <dd class="text-gray-900 font-medium">{{ internship.country }}</dd>
+            </div>
+            {% endif %}
+            <div class="flex justify-between py-1">
+              <dt class="text-gray-500">Remote</dt>
+              <dd>
+                {% if internship.is_remote %}
+                <span class="text-green-600 font-medium"><i class="fas fa-check"></i> Yes</span>
+                {% else %}
+                <span class="text-gray-500">No</span>
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Contact -->
+        {% if internship.emails %}
+        <div class="bg-white border rounded-lg p-4">
+          <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <i class="fas fa-envelope text-forest"></i> Contact
+          </h3>
+          <div class="text-sm text-gray-700">
+            {{ internship.emails }}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  // Parse markdown in description
+  const descEl = document.getElementById('description');
+  if (descEl && typeof marked !== 'undefined') {
+    const raw = descEl.innerHTML;
+    descEl.innerHTML = DOMPurify.sanitize(marked.parse(raw));
+  }
+</script>
 {% endblock %}

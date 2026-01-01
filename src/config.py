@@ -80,7 +80,7 @@ class Settings:
     # DATABASE CONFIGURATION
     # ============================================================================
     
-    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "data/internship_sync.db")
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "data/internship_sync_new.db")
     
     @classmethod
     def ensure_database_directory(cls) -> Path:

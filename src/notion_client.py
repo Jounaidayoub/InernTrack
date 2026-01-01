@@ -38,7 +38,7 @@ logger = get_logger("sqlite_client", settings.LOG_LEVEL)
 class DatabaseClient:
     def __init__(self, db_path=None):
         """Initialize SQLite database connection"""
-        self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'data/internship_sync.db')
+        self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'data/internship_sync_new.db')
         self._ensure_database_exists()
         self._create_tables()
         
@@ -330,7 +330,7 @@ logger = get_logger("sqlite_client", settings.LOG_LEVEL)
 class DatabaseClient:
     def __init__(self, db_path=None):
         """Initialize SQLite database connection"""
-        self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'internship_sync.db')
+        self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'internship_sync_new.db')
         self._ensure_database_exists()
         self._create_tables()
         

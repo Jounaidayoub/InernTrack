@@ -43,6 +43,40 @@ def companies_page():
     return render_template('companies.html')
 
 
+@bp.route('/internship/<int:intern_id>')
+def internship_detail_page(intern_id):
+    """Internship detail page."""
+    db = DatabaseClient()
+    internship = db.get_internship(intern_id)
+    if not internship:
+        return render_template('404.html'), 404
+    return render_template('internship_detail.html', internship=internship)
+
+
+@bp.route('/company/<int:company_id>')
+def company_detail_page(company_id):
+    """Company detail page."""
+    db = DatabaseClient()
+    with db.get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM companies WHERE id = ?', (company_id,))
+        row = cur.fetchone()
+        if not row:
+            return render_template('404.html'), 404
+        company = dict(row)
+        
+        # Get internships for this company
+        cur.execute('''
+            SELECT id, title, location, status, is_remote, date_posted
+            FROM internships 
+            WHERE company_id = ?
+            ORDER BY date_scraped DESC
+        ''', (company_id,))
+        internships = [dict(r) for r in cur.fetchall()]
+        
+    return render_template('company_detail.html', company=company, internships=internships)
+
+
 @bp.route('/db')
 def db_status_page():
     """Database status page."""

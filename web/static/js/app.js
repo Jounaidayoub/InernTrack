@@ -61,28 +61,111 @@ function renderPagination(containerSelector, page, per_page, total, onPage){
   container.appendChild(makeBtn('Next', Math.min(totalPages, page+1), page>=totalPages));
 }
 
-function renderRows(items){
+function renderRows(items) {
   const rows = $('#rows');
   rows.innerHTML = '';
-  items.forEach(it =>{
+
+  const fragment = document.createDocumentFragment();
+
+  for (const it of items) {
     const tr = document.createElement('tr');
-    tr.className = 'border-t hover:bg-gray-50';
-    // Use new schema fields: company_name, job_url, site, date_scraped
-    const statusClass = it.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-    const siteBadge = it.site ? `<span class="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs">${escapeHtml(it.site)}</span>` : '';
-    const remoteBadge = it.is_remote ? '<span class="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs ml-1">Remote</span>' : '';
+    tr.className = 'border-t hover:bg-sage-light cursor-pointer transition';
+    tr.dataset.id = it.id;
+
+    const statusClass =
+      it.status === 'open'
+        ? 'bg-green-100 text-green-800'
+        : 'bg-red-100 text-red-800';
+
     tr.innerHTML = `
-      <td class="p-3 align-top text-xs">${escapeHtml(it.company_name || it.company || '')}</td>
-      <td class="p-3 text-xs">${escapeHtml(it.title || '')}</td>
-      <td class="p-3 text-xs">${escapeHtml(it.location || '')}</td>
-      <td class="p-3">${siteBadge}${remoteBadge}</td>
-      <td class="p-3"><span class="px-2 py-1 rounded ${statusClass}">${escapeHtml(it.status || 'unknown')}</span></td>
-      <td class="p-3 text-xs">${escapeHtml(it.date_scraped || it.created_at || '')}</td>
-      <td class="p-3"><button class="openBtn btn-accent text-white px-2 py-1 rounded" data-id="${it.id}">View</button></td>
+      <td class="p-3 align-top text-xs">
+        ${renderCompanyCell(it)}
+      </td>
+
+      <td class="p-3 text-xs font-medium hover:underline">
+        <a href="/internship/${it.id}" onclick="event.stopPropagation()">
+          ${escapeHtml(it.title || '')}
+        </a>
+      </td>
+
+      <td class="p-3 text-xs">
+        ${escapeHtml(it.location || '')}
+      </td>
+
+      <td class="p-3">
+        ${renderBadges(it)}
+      </td>
+
+      <td class="p-3">
+        <span class="px-2 py-1 rounded text-xs ${statusClass}">
+          ${escapeHtml(it.status || 'unknown')}
+        </span>
+      </td>
+
+      <td class="p-3 text-xs text-gray-500">
+        ${escapeHtml(it.date_scraped || it.created_at || '')}
+      </td>
+
+      <td class="p-3">
+        <button
+          class="openBtn btn-accent text-white px-2 py-1 rounded"
+          data-id="${it.id}"
+          onclick="event.stopPropagation()"
+        >
+          Description
+        </button>
+      </td>
     `;
-    rows.appendChild(tr);
-  });
+
+    tr.addEventListener('click', () => {
+      window.location.href = `/internship/${it.id}`;
+    });
+
+    fragment.appendChild(tr);
+  }
+
+  rows.appendChild(fragment);
 }
+
+function renderCompanyCell(it) {
+  if (!it.company_name && !it.company) {
+    return '<span class="text-gray-400">Unknown</span>';
+  }
+
+  return `
+    <a
+      href="/company/${it.company_id || ''}"
+      class="text-forest hover:underline"
+      onclick="event.stopPropagation()"
+    >
+      ${escapeHtml(it.company_name || it.company)}
+    </a>
+  `;
+}
+
+function renderBadges(it) {
+  let html = '';
+
+  if (it.site) {
+    html += `
+      <span class="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs">
+        ${escapeHtml(it.site)}
+      </span>
+    `;
+  }
+
+  if (it.is_remote) {
+    html += `
+      <span class="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs ml-1">
+        Remote
+      </span>
+    `;
+  }
+
+  return html;
+}
+
+
 
 function escapeHtml(s){
   return String(s).replace(/[&<>\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);
@@ -99,16 +182,6 @@ async function loadPage(){
     $('#table').classList.remove('hidden');
     // render pagination
     renderPagination('#pagination', state.page, state.per_page, data.total || 0, (p)=>{ state.page = p; loadPage(); });
-    // attach view handlers
-    document.querySelectorAll('.openBtn').forEach(btn=>btn.addEventListener('click', async (e)=>{
-      const id = e.currentTarget.dataset.id;
-      const res = await fetch(`/api/internship/${id}`);
-      const json = await res.json();
-       
-    
-      
-      showModal(json);
-    }));
   }catch(err){
     console.error(err);
     $('#loading').innerText = 'Failed to load.';
@@ -164,17 +237,24 @@ function renderCompanies(items){
   const list = $('#companyList');
   list.innerHTML = '';
   items.forEach(c=>{
-    const card = document.createElement('div');
-    card.className = 'p-4 border rounded hover:shadow';
-    card.innerHTML = `<h3 class="font-semibold">${escapeHtml(c.name)}</h3><p class="text-sm text-gray-500">${escapeHtml(c.industry||'')}</p><p class="text-sm mt-2">${escapeHtml((c.description||'').slice(0,200))}</p><div class="mt-2"><button class="companyOpen btn-accent text-white px-3 py-1 rounded" data-id="${c.id}">View</button></div>`;
+    const card = document.createElement('a');
+    card.href = `/company/${c.id}`;
+    card.className = 'block p-4 border rounded hover:shadow hover:border-forest transition bg-white';
+    card.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 rounded-lg bg-sage-light flex items-center justify-center shrink-0">
+          <i class="fas fa-building text-xl text-forest"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-gray-900">${escapeHtml(c.name)}</h3>
+          <p class="text-sm text-forest">${escapeHtml(c.industry||'')}</p>
+          <p class="text-sm text-gray-500 mt-1 line-clamp-2">${escapeHtml((c.description||'').slice(0,150))}</p>
+          ${c.city || c.country ? `<p class="text-xs text-gray-400 mt-2"><i class="fas fa-map-marker-alt mr-1"></i>${escapeHtml(c.city || '')}${c.city && c.country ? ', ' : ''}${escapeHtml(c.country || '')}</p>` : ''}
+        </div>
+      </div>
+    `;
     list.appendChild(card);
   });
-  document.querySelectorAll('.companyOpen').forEach(b=>b.addEventListener('click', async e=>{
-    const id = e.currentTarget.dataset.id;
-    const res = await fetch(`/api/company/${id}`);
-    const json = await res.json();
-    showCompanyModal(json);
-  }));
 }
 
 function showCompanyModal(data){

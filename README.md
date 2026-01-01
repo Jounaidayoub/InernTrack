@@ -109,7 +109,7 @@ All configuration is managed through environment variables in the `.env` file.
 |----------|-------------|---------|
 | DRY_RUN | Test mode without DB writes | `false` |
 | LOG_LEVEL | Logging verbosity | `INFO` |
-| DATABASE_PATH | SQLite database location | `data/internship_sync.db` |
+| DATABASE_PATH | SQLite database location | `data/internship_sync_new.db` |
 
 ### Supported Job Sites
 
