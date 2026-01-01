@@ -5,7 +5,7 @@
 {% block content %}
 <div class="mb-6">
     <h1 class="text-3xl font-bold mb-2">
-        <i class="fas fa-cog text-blue-600 mr-2"></i>
+        <i class="fas fa-cog mr-2" style="color: var(--forest)"></i>
         Scraping Settings
     </h1>
     <p class="text-gray-600">Configure job scraping parameters and run the scraper</p>
@@ -18,7 +18,7 @@
             <!-- Search Configuration -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fas fa-search text-blue-500 mr-2"></i>
+                    <i class="fas fa-search mr-2" style="color: var(--sage)"></i>
                     Search Configuration
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -32,7 +32,7 @@
                             id="search_terms" 
                             name="search_terms" 
                             rows="3"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                             placeholder="software engineer intern, data science intern, web developer intern"
                         ></textarea>
                         <p class="text-xs text-gray-500 mt-1">Job titles or keywords to search for</p>
@@ -48,7 +48,7 @@
                             id="locations" 
                             name="locations" 
                             rows="2"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                             placeholder="San Francisco, CA, New York, NY, Remote"
                         ></textarea>
                         <p class="text-xs text-gray-500 mt-1">Locations to search in</p>
@@ -70,7 +70,7 @@
             <!-- Job Filters -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fas fa-filter text-green-500 mr-2"></i>
+                    <i class="fas fa-filter mr-2" style="color: var(--forest)"></i>
                     Job Filters
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -82,7 +82,7 @@
                         <select 
                             id="job_type" 
                             name="job_type"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         >
                             <option value="">Any</option>
                             <option value="internship">Internship</option>
@@ -100,7 +100,7 @@
                         <select 
                             id="is_remote" 
                             name="is_remote"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         >
                             <option value="">Any</option>
                             <option value="true">Remote Only</option>
@@ -116,7 +116,7 @@
                         <select 
                             id="country_indeed" 
                             name="country_indeed"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         
                             >
                             <option value="Morocco" >Morocco</option>
@@ -141,7 +141,7 @@
             <!-- Scraping Options -->
             <div class="bg-white rounded-lg shadow-sm p-6">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <i class="fas fa-sliders-h text-purple-500 mr-2"></i>
+                    <i class="fas fa-sliders-h mr-2" style="color: var(--sage)"></i>
                     Scraping Options
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -156,7 +156,7 @@
                             name="results_wanted"
                             min="1" 
                             max="500"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         />
                         <p class="text-xs text-gray-500 mt-1">Max results per search term (1-500)</p>
                     </div>
@@ -172,7 +172,7 @@
                             name="hours_old"
                             min="1" 
                             max="720"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         />
                         <p class="text-xs text-gray-500 mt-1">Only get jobs posted within this time</p>
                     </div>
@@ -185,7 +185,7 @@
                         <select 
                             id="description_format" 
                             name="description_format"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                         >
                             <option value="markdown">Markdown</option>
                             <option value="html">HTML</option>
@@ -202,7 +202,7 @@
                                 type="checkbox" 
                                 id="linkedin_fetch_description" 
                                 name="linkedin_fetch_description"
-                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                class="w-5 h-5 border-gray-300 rounded accent-[#355E3B]"
                             />
                             <span class="text-sm text-gray-700">Fetch LinkedIn descriptions</span>
                         </label>
@@ -212,7 +212,7 @@
                                 type="checkbox" 
                                 id="easy_apply" 
                                 name="easy_apply"
-                                class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                class="w-5 h-5 border-gray-300 rounded accent-[#355E3B]"
                             />
                             <span class="text-sm text-gray-700">Easy Apply only (LinkedIn)</span>
                         </label>
@@ -249,7 +249,7 @@
                                 id="proxy" 
                                 name="proxy"
                                 placeholder="http://proxy:port or socks5://proxy:port"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                             />
                         </div>
                         
@@ -261,7 +261,7 @@
                             <select 
                                 id="verbose" 
                                 name="verbose"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
                             >
                                 <option value="0">Normal</option>
                                 <option value="1">Verbose</option>
@@ -276,7 +276,7 @@
             <div class="flex flex-wrap gap-3">
                 <button 
                     type="submit" 
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center"
+                    class="px-6 py-3 btn-accent-dark rounded-lg transition flex items-center"
                 >
                     <i class="fas fa-save mr-2"></i>
                     Save Settings
@@ -298,7 +298,7 @@
         <!-- Scrape Control -->
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-play-circle text-green-500 mr-2"></i>
+                <i class="fas fa-play-circle mr-2" style="color: var(--forest)"></i>
                 Run Scraper
             </h2>
             
@@ -316,7 +316,7 @@
                         <span id="progressPercent">0%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div id="progressBar" class="h-2 rounded-full transition-all duration-300" style="width: 0%; background-color: var(--forest)"></div>
                     </div>
                 </div>
                 <div id="scrapeStats" class="hidden mt-3 text-sm text-gray-600">
@@ -336,7 +336,7 @@
                 <button 
                     id="startScrapeBtn"
                     onclick="startScrape()"
-                    class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex-1 px-4 py-3 btn-accent-dark rounded-lg transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <i class="fas fa-play mr-2"></i>
                     Start Scraping
@@ -388,7 +388,7 @@
         <!-- Scrape History -->
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-history text-blue-500 mr-2"></i>
+                <i class="fas fa-history mr-2" style="color: var(--sage)"></i>
                 Recent Scrape Runs
             </h2>
             <div id="scrapeHistory" class="space-y-3">
@@ -441,7 +441,7 @@ function populateForm(settings) {
                 name="site_names" 
                 value="${site}"
                 ${selectedSites.includes(site) ? 'checked' : ''}
-                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                class="w-4 h-4 border-gray-300 rounded accent-[#355E3B]"
             />
             <span class="text-sm capitalize">${site.replace('_', ' ')}</span>
         </label>
@@ -459,7 +459,7 @@ function populateForm(settings) {
                 name="experience_levels" 
                 value="${level}"
                 ${selectedExp.includes(level) ? 'checked' : ''}
-                class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                class="w-4 h-4 border-gray-300 rounded accent-[#355E3B]"
             />
             <span class="text-sm capitalize">${level}</span>
         </label>
@@ -822,10 +822,10 @@ function formatDate(dateStr) {
 // Notification helper
 function showNotification(message, type = 'info') {
     const colors = {
-        success: 'bg-green-500',
+        success: 'bg-[#355E3B]',
         error: 'bg-red-500',
         warning: 'bg-yellow-500',
-        info: 'bg-blue-500'
+        info: 'bg-[#9CAF88]'
     };
     
     const notification = document.createElement('div');
