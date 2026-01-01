@@ -543,6 +543,9 @@ function renderRows(items) {
   
   // Setup status dropdowns after render
   setupStatusDropdowns();
+  
+  // Setup modal buttons after render
+  setupModalButtons();
 }
 
 function setupStatusDropdowns() {
@@ -579,6 +582,31 @@ function setupStatusDropdowns() {
       if (success) {
         // Reload to show updated status
         loadPage();
+      }
+    });
+  });
+}
+
+function setupModalButtons() {
+  // Handle modal button clicks
+  $$('.showModal').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const internshipId = btn.dataset.id;
+      
+      try {
+        // Fetch internship details
+        const response = await fetch(`/api/internship/${internshipId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch internship details');
+        }
+        const internship = await response.json();
+        
+        // Show modal with data
+        showModal(internship);
+      } catch (error) {
+        console.error('Error fetching internship:', error);
+        alert('Failed to load internship details');
       }
     });
   });
@@ -667,10 +695,10 @@ function showModal(data) {
 
   // 2. Inject content
   content.innerHTML = `
-        <span class="text-red">${escapeHtml(data.title)}</span>
-        ${escapeHtml(data.company || '')}
-    
-
+    <div class="mb-4">
+      <h2 class="text-xl font-bold text-gray-900">${escapeHtml(data.title || 'Job Description')}</h2>
+      <p class="text-gray-600">${escapeHtml(data.company || '')}</p>
+    </div>
     <div class="prose max-w-none">
       ${safeHtml}
     </div>
