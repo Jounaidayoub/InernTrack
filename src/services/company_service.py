@@ -142,6 +142,119 @@ class CompanyService:
             logger.error(f"Enrichment failed for company {company_id}: {e}")
             return ServiceResult(success=False, error=str(e), status_code=500)
     
+    def get_unenriched_companies(self) -> ServiceResult:
+        """
+        Get companies that haven't been fully enriched.
+        
+        A company is considered unenriched if it's missing:
+        - description OR
+        - linkedin_url OR
+        - website OR
+        - has no contacts
+        
+        Returns:
+            ServiceResult with list of unenriched company IDs and names
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cur = conn.cursor()
+                
+                # Get companies missing key fields or with no contacts
+                cur.execute('''
+                    SELECT c.id, c.name, c.website, c.linkedin_url,
+                           CASE WHEN c.description IS NULL OR c.description = '' THEN 0 ELSE 1 END as has_description,
+                           (SELECT COUNT(*) FROM contacts WHERE company_id = c.id) as contact_count
+                    FROM companies c
+                    WHERE c.description IS NULL OR c.description = ''
+                       OR c.linkedin_url IS NULL OR c.linkedin_url = ''
+                       OR c.website IS NULL OR c.website = ''
+                       OR (SELECT COUNT(*) FROM contacts WHERE company_id = c.id) = 0
+                    ORDER BY c.name
+                ''')
+                
+                companies = []
+                for row in cur.fetchall():
+                    companies.append({
+                        'id': row['id'],
+                        'name': row['name'],
+                        'has_website': bool(row['website']),
+                        'has_linkedin': bool(row['linkedin_url']),
+                        'has_description': bool(row['has_description']),
+                        'contact_count': row['contact_count']
+                    })
+                
+                return ServiceResult(success=True, data={
+                    'companies': companies,
+                    'total': len(companies)
+                })
+        except Exception as e:
+            logger.error(f"Failed to get unenriched companies: {e}")
+            return ServiceResult(success=False, error=str(e), status_code=500)
+    
+    def batch_enrich_companies(self, company_ids: list = None, limit: int = 10) -> ServiceResult:
+        """
+        Batch enrich multiple companies.
+        
+        If no company_ids provided, enriches unenriched companies up to limit.
+        
+        Args:
+            company_ids: Optional list of specific company IDs to enrich
+            limit: Max number of companies to enrich (default 10)
+            
+        Returns:
+            ServiceResult with enrichment results for each company
+        """
+        results = []
+        errors = []
+        
+        # Get companies to enrich
+        if company_ids:
+            ids_to_enrich = company_ids[:limit]
+        else:
+            unenriched = self.get_unenriched_companies()
+            if not unenriched.success:
+                return unenriched
+            ids_to_enrich = [c['id'] for c in unenriched.data['companies'][:limit]]
+        
+        if not ids_to_enrich:
+            return ServiceResult(success=True, data={
+                'message': 'No companies need enrichment',
+                'enriched': 0,
+                'results': []
+            })
+        
+        # Enrich each company
+        for company_id in ids_to_enrich:
+            try:
+                result = self.enrich_company(company_id)
+                if result.success:
+                    results.append({
+                        'company_id': company_id,
+                        'success': True,
+                        'target_complete': result.data.get('target_complete', False),
+                        'fields_updated': result.data.get('fields_updated', [])
+                    })
+                else:
+                    errors.append({
+                        'company_id': company_id,
+                        'success': False,
+                        'error': result.error
+                    })
+            except Exception as e:
+                errors.append({
+                    'company_id': company_id,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        return ServiceResult(success=True, data={
+            'enriched': len(results),
+            'failed': len(errors),
+            'total_attempted': len(ids_to_enrich),
+            'results': results,
+            'errors': errors
+        })
+    
     def _get_total_count(self, table: str) -> Optional[int]:
         """Get total count for a table."""
         try:

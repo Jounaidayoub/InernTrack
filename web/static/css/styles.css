@@ -22,6 +22,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 
 /* Buttons */
 .btn-accent {
+
 	background-color: var(--accent);
 	color: white;
 	transition: background-color .15s ease;
@@ -43,6 +44,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 
 /* Focus ring helper */
 .focus-accent:focus {
+
 	outline: none;
 	box-shadow: 0 0 0 3px rgba(53,94,59,0.12);
 	border-color: var(--accent-dark);

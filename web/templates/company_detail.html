@@ -373,12 +373,6 @@
       });
       const data = await res.json();
       
-      if (data.success) {
-        alert(`Enrichment complete!\n\nEmails found: ${data.enriched_data.emails?.length || 0}\nDescription: ${data.enriched_data.description ? 'Yes' : 'No'}\nLinkedIn: ${data.enriched_data.linkedin_url ? 'Yes' : 'No'}`);
-        window.location.reload();
-      } else {
-        alert('Enrichment failed: ' + (data.error || 'Unknown error'));
-      }
     } catch (err) {
       alert('Error: ' + err.message);
     } finally {
