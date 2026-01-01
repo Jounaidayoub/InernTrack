@@ -80,11 +80,11 @@ class DatabaseClient:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # Check if user_status column exists
+            # Check if user_status column exists in internships
             cursor.execute("PRAGMA table_info(internships)")
-            columns = [col[1] for col in cursor.fetchall()]
+            internship_columns = [col[1] for col in cursor.fetchall()]
             
-            if 'user_status' not in columns:
+            if 'user_status' not in internship_columns:
                 logger.info("Running migration: Adding user_status columns to internships")
                 cursor.execute("""
                     ALTER TABLE internships ADD COLUMN user_status TEXT DEFAULT 'new'
@@ -97,6 +97,21 @@ class DatabaseClient:
                 """)
                 conn.commit()
                 logger.info("Migration completed: user_status columns added")
+            
+            # Check if is_enriched column exists in companies
+            cursor.execute("PRAGMA table_info(companies)")
+            company_columns = [col[1] for col in cursor.fetchall()]
+            
+            if 'is_enriched' not in company_columns:
+                logger.info("Running migration: Adding is_enriched column to companies")
+                cursor.execute("""
+                    ALTER TABLE companies ADD COLUMN is_enriched BOOLEAN DEFAULT FALSE
+                """)
+                cursor.execute("""
+                    ALTER TABLE companies ADD COLUMN enriched_at TIMESTAMP
+                """)
+                conn.commit()
+                logger.info("Migration completed: is_enriched column added")
             
     def _create_tables(self):
         """Create all tables with improved schema."""
