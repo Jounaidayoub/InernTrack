@@ -1,0 +1,75 @@
+"""
+Companies Controller
+
+Handles company-related API routes including enrichment.
+
+Author: El Moujahid Marouane
+Version: 1.0
+"""
+
+from flask import request, jsonify
+
+from .base import BaseController
+from src.services import CompanyService
+
+
+class CompaniesController(BaseController):
+    """Controller for company API routes."""
+    
+    def register_routes(self):
+        """Register company routes."""
+        self.bp.add_url_rule('/api/companies', 'api_companies', self.list_companies)
+        self.bp.add_url_rule('/api/company/<int:company_id>', 'api_company_detail', self.get_company)
+        self.bp.add_url_rule(
+            '/api/company/<int:company_id>/enrich', 
+            'api_enrich_company', 
+            self.enrich_company, 
+            methods=['POST']
+        )
+    
+    def list_companies(self):
+        """List companies with filters and pagination."""
+        # Parse request parameters
+        q = request.args.get('q')
+        industry = request.args.get('industry')
+        country = request.args.get('country')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 25))
+        
+        # Call service
+        service = CompanyService()
+        result = service.list_companies(
+            search=q,
+            industry=industry,
+            country=country,
+            page=page,
+            per_page=per_page
+        )
+        
+        return jsonify(result.data)
+    
+    def get_company(self, company_id: int):
+        """Get company details."""
+        service = CompanyService()
+        result = service.get_company(company_id)
+        return self.service_to_response(result)
+    
+    def enrich_company(self, company_id: int):
+        """Enrich company data by scraping their website."""
+        # Get optional website URL from request
+        website_url = None
+        if request.is_json and request.json:
+            website_url = request.json.get('website_url')
+        
+        # Call service
+        service = CompanyService()
+        result = service.enrich_company(company_id, website_url)
+        
+        if result.success:
+            return jsonify({
+                'success': True,
+                'company_id': result.data['company_id'],
+                'enriched_data': result.data['enriched_data']
+            })
+        else:
+            return self.error_response(result.error, result.status_code)
