@@ -56,6 +56,7 @@ class DatabaseClient:
         self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'data/internship_sync_new.db')
         self._ensure_database_exists()
         self._create_tables()
+        self._run_migrations()
         
     def _ensure_database_exists(self):
         """Create database directory and verify connection."""
@@ -73,6 +74,29 @@ class DatabaseClient:
         except Exception as e:
             logger.error(f"Failed to initialize database: {e}")
             raise
+    
+    def _run_migrations(self):
+        """Run database migrations for schema updates."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Check if user_status column exists
+            cursor.execute("PRAGMA table_info(internships)")
+            columns = [col[1] for col in cursor.fetchall()]
+            
+            if 'user_status' not in columns:
+                logger.info("Running migration: Adding user_status columns to internships")
+                cursor.execute("""
+                    ALTER TABLE internships ADD COLUMN user_status TEXT DEFAULT 'new'
+                """)
+                cursor.execute("""
+                    ALTER TABLE internships ADD COLUMN user_notes TEXT
+                """)
+                cursor.execute("""
+                    ALTER TABLE internships ADD COLUMN user_rating INTEGER
+                """)
+                conn.commit()
+                logger.info("Migration completed: user_status columns added")
             
     def _create_tables(self):
         """Create all tables with improved schema."""
@@ -190,10 +214,16 @@ class DatabaseClient:
                     emails TEXT,
                     apply_instructions TEXT,
                     
-                    -- Status
+                    -- Job Status (from source)
                     status TEXT DEFAULT 'open'
                         CHECK (status IN ('open', 'closed', 'filled', 'expired', 'unknown')),
                     is_active BOOLEAN DEFAULT TRUE,
+                    
+                    -- User Status (user's tracking status)
+                    user_status TEXT DEFAULT 'new'
+                        CHECK (user_status IN ('new', 'interesting', 'applied', 'waiting', 'interviewing', 'rejected', 'offer', 'ignored')),
+                    user_notes TEXT,
+                    user_rating INTEGER CHECK (user_rating IS NULL OR (user_rating >= 1 AND user_rating <= 5)),
                     
                     -- Debug
                     raw_data TEXT,
@@ -698,10 +728,41 @@ class DatabaseClient:
             logger.exception(f"Failed to process job: {e}")
             return None
     
-    def list_internships(self, search: str = None, site: str = None,
-                        is_remote: bool = None, status: str = None,
-                        limit: int = 50, offset: int = 0) -> List[Dict]:
-        """List internships with filters."""
+    def list_internships(
+        self, 
+        search: str = None, 
+        site: str = None,
+        is_remote: bool = None, 
+        status: str = None,
+        user_status: str = None,
+        user_statuses: List[str] = None,
+        company_ids: List[int] = None,
+        locations: List[str] = None,
+        sort_by: str = 'date_scraped',
+        sort_order: str = 'desc',
+        limit: int = 50, 
+        offset: int = 0
+    ) -> List[Dict]:
+        """
+        List internships with advanced filters and sorting.
+        
+        Args:
+            search: Search in title, company name, location
+            site: Filter by job site source
+            is_remote: Filter by remote status
+            status: Filter by job status (open, closed, etc.)
+            user_status: Filter by single user status
+            user_statuses: Filter by multiple user statuses (OR)
+            company_ids: Filter by multiple company IDs (OR)
+            locations: Filter by multiple locations (OR, partial match)
+            sort_by: Column to sort by (date_scraped, date_posted, title, company_name, user_status)
+            sort_order: Sort order (asc, desc)
+            limit: Max results
+            offset: Pagination offset
+            
+        Returns:
+            List of internship dictionaries
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -713,28 +774,219 @@ class DatabaseClient:
             params = []
             clauses = []
             
+            # Text search
             if search:
                 clauses.append("(i.title LIKE ? OR c.name LIKE ? OR i.location LIKE ?)")
                 q = f"%{search}%"
                 params.extend([q, q, q])
+            
+            # Site filter
             if site:
                 clauses.append("i.site = ?")
                 params.append(site)
+            
+            # Remote filter
             if is_remote is not None:
                 clauses.append("i.is_remote = ?")
                 params.append(is_remote)
+            
+            # Job status filter
             if status:
                 clauses.append("i.status = ?")
                 params.append(status)
             
+            # User status filter (single)
+            if user_status:
+                clauses.append("i.user_status = ?")
+                params.append(user_status)
+            
+            # User status filter (multiple - OR)
+            if user_statuses and len(user_statuses) > 0:
+                placeholders = ','.join(['?' for _ in user_statuses])
+                clauses.append(f"i.user_status IN ({placeholders})")
+                params.extend(user_statuses)
+            
+            # Company filter (multiple - OR)
+            if company_ids and len(company_ids) > 0:
+                placeholders = ','.join(['?' for _ in company_ids])
+                clauses.append(f"i.company_id IN ({placeholders})")
+                params.extend(company_ids)
+            
+            # Location filter (multiple - OR with LIKE)
+            if locations and len(locations) > 0:
+                location_clauses = []
+                for loc in locations:
+                    location_clauses.append("i.location LIKE ?")
+                    params.append(f"%{loc}%")
+                clauses.append(f"({' OR '.join(location_clauses)})")
+            
             if clauses:
                 query += " WHERE " + " AND ".join(clauses)
             
-            query += " ORDER BY i.date_scraped DESC LIMIT ? OFFSET ?"
+            # Sorting
+            valid_sort_columns = {
+                'date_scraped': 'i.date_scraped',
+                'date_posted': 'i.date_posted',
+                'title': 'i.title',
+                'company_name': 'c.name',
+                'user_status': 'i.user_status',
+                'location': 'i.location',
+                'status': 'i.status'
+            }
+            sort_col = valid_sort_columns.get(sort_by, 'i.date_scraped')
+            sort_dir = 'ASC' if sort_order.lower() == 'asc' else 'DESC'
+            
+            query += f" ORDER BY {sort_col} {sort_dir} LIMIT ? OFFSET ?"
             params.extend([limit, offset])
             
             cursor.execute(query, params)
             return [dict(r) for r in cursor.fetchall()]
+    
+    def count_internships(
+        self,
+        search: str = None,
+        site: str = None,
+        is_remote: bool = None,
+        status: str = None,
+        user_status: str = None,
+        user_statuses: List[str] = None,
+        company_ids: List[int] = None,
+        locations: List[str] = None
+    ) -> int:
+        """Count internships with same filters as list_internships."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT COUNT(*) as count
+                FROM internships i
+                LEFT JOIN companies c ON i.company_id = c.id
+            """
+            params = []
+            clauses = []
+            
+            if search:
+                clauses.append("(i.title LIKE ? OR c.name LIKE ? OR i.location LIKE ?)")
+                q = f"%{search}%"
+                params.extend([q, q, q])
+            
+            if site:
+                clauses.append("i.site = ?")
+                params.append(site)
+            
+            if is_remote is not None:
+                clauses.append("i.is_remote = ?")
+                params.append(is_remote)
+            
+            if status:
+                clauses.append("i.status = ?")
+                params.append(status)
+            
+            if user_status:
+                clauses.append("i.user_status = ?")
+                params.append(user_status)
+            
+            if user_statuses and len(user_statuses) > 0:
+                placeholders = ','.join(['?' for _ in user_statuses])
+                clauses.append(f"i.user_status IN ({placeholders})")
+                params.extend(user_statuses)
+            
+            if company_ids and len(company_ids) > 0:
+                placeholders = ','.join(['?' for _ in company_ids])
+                clauses.append(f"i.company_id IN ({placeholders})")
+                params.extend(company_ids)
+            
+            if locations and len(locations) > 0:
+                location_clauses = []
+                for loc in locations:
+                    location_clauses.append("i.location LIKE ?")
+                    params.append(f"%{loc}%")
+                clauses.append(f"({' OR '.join(location_clauses)})")
+            
+            if clauses:
+                query += " WHERE " + " AND ".join(clauses)
+            
+            cursor.execute(query, params)
+            return cursor.fetchone()['count']
+    
+    def update_internship_user_status(
+        self, 
+        internship_id: int, 
+        user_status: str, 
+        user_notes: str = None,
+        user_rating: int = None
+    ) -> bool:
+        """Update user status, notes, and rating for an internship."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            updates = ["user_status = ?", "updated_at = CURRENT_TIMESTAMP"]
+            params = [user_status]
+            
+            if user_notes is not None:
+                updates.append("user_notes = ?")
+                params.append(user_notes)
+            
+            if user_rating is not None:
+                updates.append("user_rating = ?")
+                params.append(user_rating)
+            
+            params.append(internship_id)
+            
+            cursor.execute(f"""
+                UPDATE internships SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def get_filter_options(self) -> Dict[str, List]:
+        """Get distinct values for filter dropdowns."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get unique locations
+            cursor.execute("""
+                SELECT DISTINCT location FROM internships 
+                WHERE location IS NOT NULL AND location != ''
+                ORDER BY location
+            """)
+            locations = [r['location'] for r in cursor.fetchall()]
+            
+            # Get companies with internship count
+            cursor.execute("""
+                SELECT c.id, c.name, COUNT(i.id) as count
+                FROM companies c
+                INNER JOIN internships i ON i.company_id = c.id
+                GROUP BY c.id, c.name
+                ORDER BY count DESC, c.name
+            """)
+            companies = [{'id': r['id'], 'name': r['name'], 'count': r['count']} for r in cursor.fetchall()]
+            
+            # Get user status counts
+            cursor.execute("""
+                SELECT user_status, COUNT(*) as count
+                FROM internships
+                GROUP BY user_status
+                ORDER BY count DESC
+            """)
+            user_statuses = [{'status': r['user_status'] or 'new', 'count': r['count']} for r in cursor.fetchall()]
+            
+            # Get site counts
+            cursor.execute("""
+                SELECT site, COUNT(*) as count
+                FROM internships
+                GROUP BY site
+                ORDER BY count DESC
+            """)
+            sites = [{'site': r['site'], 'count': r['count']} for r in cursor.fetchall()]
+            
+            return {
+                'locations': locations,
+                'companies': companies,
+                'user_statuses': user_statuses,
+                'sites': sites
+            }
     
     def get_internship(self, internship_id: int) -> Optional[Dict]:
         """Get internship by ID with company info."""
