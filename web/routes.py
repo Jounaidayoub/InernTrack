@@ -1,5 +1,18 @@
-"""Flask blueprint providing pages and JSON APIs for internships and companies."""
-from flask import Blueprint, render_template, request, jsonify, send_file, current_app, url_for
+"""
+Flask routes for internship tracking web UI.
+
+Provides pages and JSON APIs for:
+- Internships listing and detail
+- Companies listing and detail
+- Scrape runs (audit log)
+- Database status
+- CSV export
+
+Author: El Moujahid Marouane
+Version: 2.0
+"""
+
+from flask import Blueprint, render_template, request, jsonify, current_app
 from src.database_client import DatabaseClient
 import csv
 import io
@@ -7,45 +20,108 @@ import os
 
 bp = Blueprint('main', __name__)
 
+
+# ============================================================================
+# PAGES
+# ============================================================================
+
 @bp.route('/')
 def index():
-    # Home can redirect to internships dashboard
+    """Home page - redirects to internships."""
     return render_template('internships.html')
+
 
 @bp.route('/internships')
 def internships_page():
+    """Internships listing page."""
     return render_template('internships.html')
+
 
 @bp.route('/companies')
 def companies_page():
+    """Companies listing page."""
     return render_template('companies.html')
 
-# JSON API for internships with filtering, sorting, pagination
+
+@bp.route('/db')
+def db_status_page():
+    """Database status page."""
+    db = DatabaseClient()
+    stats = db.get_stats()
+
+    try:
+        db_file = db.db_path
+        file_size = os.path.getsize(db_file)
+    except Exception:
+        db_file = getattr(db, 'db_path', 'unknown')
+        file_size = None
+
+    page_count = None
+    page_size = None
+    try:
+        conn = db.get_connection()
+        cur = conn.cursor()
+        cur.execute('PRAGMA page_count')
+        page_count = cur.fetchone()[0]
+        cur.execute('PRAGMA page_size')
+        page_size = cur.fetchone()[0]
+        conn.close()
+    except Exception:
+        pass
+
+    est_bytes = page_count * page_size if page_count and page_size else None
+
+    return render_template(
+        'db_status.html', 
+        stats=stats, 
+        db_file=db_file, 
+        file_size=file_size, 
+        page_count=page_count, 
+        page_size=page_size, 
+        est_bytes=est_bytes
+    )
+
+
+# ============================================================================
+# INTERNSHIPS API
+# ============================================================================
+
 @bp.route('/api/internships')
 def api_internships():
+    """List internships with filters and pagination."""
     q = request.args.get('q')
+    site = request.args.get('site')
+    is_remote = request.args.get('is_remote')
+    status = request.args.get('status')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 25))
-    sort = request.args.get('sort', 'created_at')
-    order = request.args.get('order', 'desc')
 
-    # Map sort param to allowed columns
-    allowed_sorts = {'company': 'company', 'created_at': 'created_at', 'application_deadline': 'application_deadline', 'location': 'location'}
-    sort_col = allowed_sorts.get(sort, 'created_at')
+    # Convert is_remote to boolean
+    if is_remote is not None:
+        is_remote = is_remote.lower() in ('true', '1', 'yes')
+
     offset = (page - 1) * per_page
 
     db = DatabaseClient()
-    items = db.list_internships(search=q, limit=per_page, offset=offset)
+    items = db.list_internships(
+        search=q,
+        site=site,
+        is_remote=is_remote,
+        status=status,
+        limit=per_page,
+        offset=offset
+    )
 
-    # basic total (inefficient for large DBs but acceptable here)
+    # Get total count
     total = None
     try:
         conn = db.get_connection()
         cur = conn.cursor()
         cur.execute('SELECT COUNT(*) as c FROM internships')
         total = cur.fetchone()['c']
-    finally:
         conn.close()
+    except Exception:
+        pass
 
     return jsonify({
         'items': items,
@@ -54,26 +130,39 @@ def api_internships():
         'total': total
     })
 
+
 @bp.route('/api/internship/<int:intern_id>')
 def api_internship_detail(intern_id):
+    """Get internship details."""
     db = DatabaseClient()
-    with db.get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT internships.*, companies.name as company FROM internships LEFT JOIN companies ON internships.company_id = companies.id WHERE internships.id = ?', (intern_id,))
-        row = cur.fetchone()
-        if not row:
-            return jsonify({'error': 'not found'}), 404
-        return jsonify(dict(row))
+    internship = db.get_internship(intern_id)
+    if not internship:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(internship)
+
+
+# ============================================================================
+# COMPANIES API
+# ============================================================================
 
 @bp.route('/api/companies')
 def api_companies():
+    """List companies with filters and pagination."""
     q = request.args.get('q')
+    industry = request.args.get('industry')
+    country = request.args.get('country')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 25))
     offset = (page - 1) * per_page
 
     db = DatabaseClient()
-    items = db.list_companies(search=q, limit=per_page, offset=offset)
+    items = db.list_companies(
+        search=q,
+        industry=industry,
+        country=country,
+        limit=per_page,
+        offset=offset
+    )
 
     total = None
     try:
@@ -81,13 +170,21 @@ def api_companies():
         cur = conn.cursor()
         cur.execute('SELECT COUNT(*) as c FROM companies')
         total = cur.fetchone()['c']
-    finally:
         conn.close()
+    except Exception:
+        pass
 
-    return jsonify({'items': items, 'page': page, 'per_page': per_page, 'total': total})
+    return jsonify({
+        'items': items,
+        'page': page,
+        'per_page': per_page,
+        'total': total
+    })
+
 
 @bp.route('/api/company/<int:company_id>')
 def api_company_detail(company_id):
+    """Get company details."""
     db = DatabaseClient()
     with db.get_connection() as conn:
         cur = conn.cursor()
@@ -97,60 +194,30 @@ def api_company_detail(company_id):
             return jsonify({'error': 'not found'}), 404
         return jsonify(dict(row))
 
-@bp.route('/export/internships.csv')
-def export_internships():
+
+# ============================================================================
+# SCRAPE RUNS API
+# ============================================================================
+
+@bp.route('/api/scrape_runs')
+def api_scrape_runs():
+    """List recent scrape runs."""
+    limit = int(request.args.get('limit', 20))
     db = DatabaseClient()
-    items = db.list_internships(limit=10000, offset=0)
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    # header
-    writer.writerow(['company', 'title', 'url', 'location', 'status', 'created_at'])
-    for it in items:
-        writer.writerow([it.get('company'), it.get('title'), it.get('url'), it.get('location'), it.get('status'), it.get('created_at')])
-
-    output.seek(0)
-    return current_app.response_class(output.read(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=internships.csv'})
+    runs = db.list_scrape_runs(limit=limit)
+    return jsonify({'items': runs})
 
 
-@bp.route('/db')
-def db_status_page():
-    """Render a simple page showing database status and table counts."""
-    db = DatabaseClient()
-    stats = db.get_stats()
-
-    # file size
-    try:
-        db_file = db.db_path
-        file_size = os.path.getsize(db_file)
-    except Exception:
-        db_file = getattr(db, 'db_path', 'unknown')
-        file_size = None
-
-    # estimate using PRAGMA
-    page_count = None
-    page_size = None
-    try:
-        conn = db.get_connection()
-        cur = conn.cursor()
-        cur.execute('PRAGMA page_count')
-        page_count = cur.fetchone()[0]
-        cur.execute('PRAGMA page_size')
-        page_size = cur.fetchone()[0]
-        conn.close()
-    except Exception:
-        page_count = None
-        page_size = None
-
-    est_bytes = page_count * page_size if page_count and page_size else None
-
-    return render_template('db_status.html', stats=stats, db_file=db_file, file_size=file_size, page_count=page_count, page_size=page_size, est_bytes=est_bytes)
-
+# ============================================================================
+# DATABASE STATUS API
+# ============================================================================
 
 @bp.route('/api/db_status')
 def api_db_status():
+    """Get database status and statistics."""
     db = DatabaseClient()
     stats = db.get_stats()
+
     try:
         db_file = db.db_path
         file_size = os.path.getsize(db_file)
@@ -169,8 +236,7 @@ def api_db_status():
         page_size = cur.fetchone()[0]
         conn.close()
     except Exception:
-        page_count = None
-        page_size = None
+        pass
 
     est_bytes = page_count * page_size if page_count and page_size else None
 
@@ -182,3 +248,43 @@ def api_db_status():
         'page_size': page_size,
         'estimated_bytes': est_bytes
     })
+
+
+# ============================================================================
+# EXPORT
+# ============================================================================
+
+@bp.route('/export/internships.csv')
+def export_internships():
+    """Export internships as CSV."""
+    db = DatabaseClient()
+    items = db.list_internships(limit=10000, offset=0)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header with new schema fields
+    writer.writerow([
+        'company_name', 'title', 'job_url', 'location', 'site', 
+        'is_remote', 'status', 'date_posted', 'date_scraped'
+    ])
+    
+    for it in items:
+        writer.writerow([
+            it.get('company_name'),
+            it.get('title'),
+            it.get('job_url'),
+            it.get('location'),
+            it.get('site'),
+            it.get('is_remote'),
+            it.get('status'),
+            it.get('date_posted'),
+            it.get('date_scraped')
+        ])
+
+    output.seek(0)
+    return current_app.response_class(
+        output.read(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=internships.csv'}
+    )

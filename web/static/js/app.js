@@ -67,12 +67,17 @@ function renderRows(items){
   items.forEach(it =>{
     const tr = document.createElement('tr');
     tr.className = 'border-t hover:bg-gray-50';
+    // Use new schema fields: company_name, job_url, site, date_scraped
+    const statusClass = it.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    const siteBadge = it.site ? `<span class="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs">${escapeHtml(it.site)}</span>` : '';
+    const remoteBadge = it.is_remote ? '<span class="px-2 py-1 rounded bg-purple-100 text-purple-800 text-xs ml-1">Remote</span>' : '';
     tr.innerHTML = `
-      <td class="p-3 align-top text-xs">${escapeHtml(it.company||'')}</td>
-      <td class="p-3 text-xs">${escapeHtml(it.title||'')}</td>
-      <td class="p-3 text-xs ">${escapeHtml(it.location||'')}</td>
-      <td class="p-3"><span class="px-2 py-1 rounded ${it.status==='Open'? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${escapeHtml(it.status)}</span></td>
-      <td class="p-3 text-xs">${escapeHtml(it.created_at||'')}</td>
+      <td class="p-3 align-top text-xs">${escapeHtml(it.company_name || it.company || '')}</td>
+      <td class="p-3 text-xs">${escapeHtml(it.title || '')}</td>
+      <td class="p-3 text-xs">${escapeHtml(it.location || '')}</td>
+      <td class="p-3">${siteBadge}${remoteBadge}</td>
+      <td class="p-3"><span class="px-2 py-1 rounded ${statusClass}">${escapeHtml(it.status || 'unknown')}</span></td>
+      <td class="p-3 text-xs">${escapeHtml(it.date_scraped || it.created_at || '')}</td>
       <td class="p-3"><button class="openBtn btn-accent text-white px-2 py-1 rounded" data-id="${it.id}">View</button></td>
     `;
     rows.appendChild(tr);

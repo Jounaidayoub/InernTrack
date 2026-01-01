@@ -1,63 +1,71 @@
 #!/usr/bin/env python3
 """
-SQLite Database Integration Module
+SQLite Database Client (v2.0)
 
-This module provides database operations for the internship sync pipeline.
-It replaces the Notion integration with a local SQLite database for:
+Improved database module for the internship tracking pipeline.
+Features:
+- All JobSpy fields captured
+- Salary decomposition (min, max, currency, interval)
+- Scrape run auditing
+- Proper foreign keys with CASCADE
+- CHECK constraints for data validation
+- Optimized indexes
 
-- Company management
-- Contact tracking
-- Internship opportunities
-- Application tracking
-- Document management
-- Received offers
-
-The module implements proper database schema, relationships, and CRUD operations
-with transaction support and error handling.
-
-Key Features:
-- Automatic database and table creation
-- Duplicate detection and prevention
-- Comprehensive error logging
-- Transaction support for data integrity
-- Relationship management between tables
+Tables:
+- scrape_runs: Audit log of scraping operations
+- companies: Company information with JobSpy metadata
+- internships: Job postings with full JobSpy fields
+- job_tags: Tagging system
+- internship_tags: Junction table for tags
+- contacts: Contact management
+- applications: Application tracking
+- documents: Document storage
+- offers_received: Offer tracking
+- saved_searches: Reusable search queries
 
 Author: El Moujahid Marouane
-Version: 1.0
+Version: 2.0
 """
 
-# TODO: immigrate to pg server 
 import sqlite3
 import os
+import json
 from datetime import datetime
+from typing import Optional, Dict, Any, List
+
 try:
     from .config import settings
     from .logger_setup import get_logger
 except ImportError:
-    # Handle case when run directly (not as package)
     from config import settings
     from logger_setup import get_logger
-import json
 
-logger = get_logger("sqlite_client", settings.LOG_LEVEL)
+logger = get_logger("database_client", settings.LOG_LEVEL)
+
 
 class DatabaseClient:
-    def __init__(self, db_path=None):
-        """Initialize SQLite database connection"""
+    """
+    SQLite database client for internship tracking.
+    
+    Provides CRUD operations for all entities with full
+    JobSpy field support and scrape run auditing.
+    """
+    
+    def __init__(self, db_path: str = None):
+        """Initialize database connection and create schema."""
         self.db_path = db_path or getattr(settings, 'DATABASE_PATH', 'data/internship_sync.db')
         self._ensure_database_exists()
         self._create_tables()
         
     def _ensure_database_exists(self):
-        """Ensure database file exists and is accessible"""
+        """Create database directory and verify connection."""
         try:
-            # Create directory if it doesn't exist
             db_dir = os.path.dirname(self.db_path)
             if db_dir and not os.path.exists(db_dir):
                 os.makedirs(db_dir)
                 
-            # Test connection
             with sqlite3.connect(self.db_path) as conn:
+                conn.execute('PRAGMA foreign_keys = ON')
                 conn.execute('SELECT 1')
                 
             logger.info(f"Database initialized: {self.db_path}")
@@ -65,29 +73,166 @@ class DatabaseClient:
         except Exception as e:
             logger.error(f"Failed to initialize database: {e}")
             raise
-            logger.error(f"Failed to initialize database: {e}")
-            raise
             
     def _create_tables(self):
-        """Create all required tables with proper schema"""
+        """Create all tables with improved schema."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON")
             
-            # Companies table
+            # ================================================================
+            # SCRAPE_RUNS - Audit log for scraping operations
+            # ================================================================
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS companies (
+                CREATE TABLE IF NOT EXISTS scrape_runs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE,
-                    website TEXT,
-                    industry TEXT,
-                    country TEXT,
-                    description TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    status TEXT NOT NULL DEFAULT 'running' 
+                        CHECK (status IN ('running', 'completed', 'failed', 'cancelled')),
+                    search_terms TEXT,
+                    locations TEXT,
+                    sites TEXT,
+                    total_found INTEGER DEFAULT 0,
+                    new_jobs INTEGER DEFAULT 0,
+                    duplicates INTEGER DEFAULT 0,
+                    errors INTEGER DEFAULT 0,
+                    error_message TEXT,
+                    config_snapshot TEXT
                 )
             """)
             
-            # Contacts table
+            # ================================================================
+            # COMPANIES - Enhanced with JobSpy fields
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS companies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    name_normalized TEXT,
+                    website TEXT,
+                    company_url TEXT,
+                    company_url_direct TEXT,
+                    logo_url TEXT,
+                    industry TEXT,
+                    country TEXT,
+                    city TEXT,
+                    addresses TEXT,
+                    num_employees TEXT,
+                    revenue TEXT,
+                    description TEXT,
+                    linkedin_url TEXT,
+                    glassdoor_url TEXT,
+                    is_verified BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(name, country)
+                )
+            """)
+            
+            # ================================================================
+            # INTERNSHIPS - Completely redesigned with all JobSpy fields
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS internships (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER,
+                    scrape_run_id INTEGER,
+                    
+                    -- Core fields
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    
+                    -- Location
+                    location TEXT,
+                    city TEXT,
+                    state TEXT,
+                    country TEXT,
+                    
+                    -- URLs
+                    job_url TEXT UNIQUE,
+                    job_url_direct TEXT,
+                    
+                    -- Source & Type
+                    site TEXT DEFAULT 'other' 
+                        CHECK (site IN ('linkedin', 'indeed', 'glassdoor', 'zip_recruiter', 'google', 'other')),
+                    job_type TEXT DEFAULT 'internship'
+                        CHECK (job_type IN ('fulltime', 'parttime', 'contract', 'internship', 'temporary', 'other')),
+                    job_level TEXT,
+                    job_function TEXT,
+                    
+                    -- Salary (decomposed)
+                    salary_min REAL,
+                    salary_max REAL,
+                    salary_currency TEXT DEFAULT 'USD',
+                    salary_interval TEXT DEFAULT 'yearly'
+                        CHECK (salary_interval IN ('yearly', 'monthly', 'weekly', 'daily', 'hourly', 'unknown')),
+                    salary_source TEXT,
+                    
+                    -- Remote work
+                    is_remote BOOLEAN DEFAULT FALSE,
+                    
+                    -- Dates
+                    date_posted DATE,
+                    date_scraped TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    application_deadline DATE,
+                    start_date DATE,
+                    
+                    -- Additional info
+                    duration TEXT,
+                    benefits TEXT,
+                    requirements TEXT,
+                    skills TEXT,
+                    experience_level TEXT,
+                    education_level TEXT,
+                    
+                    -- Contact
+                    emails TEXT,
+                    apply_instructions TEXT,
+                    
+                    -- Status
+                    status TEXT DEFAULT 'open'
+                        CHECK (status IN ('open', 'closed', 'filled', 'expired', 'unknown')),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    
+                    -- Debug
+                    raw_data TEXT,
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    
+                    FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL,
+                    FOREIGN KEY (scrape_run_id) REFERENCES scrape_runs (id) ON DELETE SET NULL
+                )
+            """)
+            
+            # ================================================================
+            # JOB_TAGS - Tagging system
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS job_tags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    color TEXT DEFAULT '#9CAF88',
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS internship_tags (
+                    internship_id INTEGER NOT NULL,
+                    tag_id INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (internship_id, tag_id),
+                    FOREIGN KEY (internship_id) REFERENCES internships (id) ON DELETE CASCADE,
+                    FOREIGN KEY (tag_id) REFERENCES job_tags (id) ON DELETE CASCADE
+                )
+            """)
+            
+            # ================================================================
+            # CONTACTS
+            # ================================================================
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS contacts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,267 +243,315 @@ class DatabaseClient:
                     position TEXT,
                     linkedin_url TEXT,
                     notes TEXT,
+                    is_primary BOOLEAN DEFAULT FALSE,
+                    last_contacted DATE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (company_id) REFERENCES companies (id)
+                    FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
                 )
             """)
             
-            # Internships table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS internships (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    company_id INTEGER,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    location TEXT,
-                    url TEXT UNIQUE,
-                    status TEXT DEFAULT 'Open',
-                    requirements TEXT,
-                    salary_range TEXT,
-                    duration TEXT,
-                    start_date TEXT,
-                    application_deadline TEXT,
-                    is_remote BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (company_id) REFERENCES companies (id)
-                )
-            """)
-            
-            # Applications table
+            # ================================================================
+            # APPLICATIONS - Enhanced with tracking
+            # ================================================================
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS applications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     internship_id INTEGER,
-                    status TEXT DEFAULT 'Applied',
+                    company_id INTEGER,
+                    
+                    status TEXT DEFAULT 'draft'
+                        CHECK (status IN ('draft', 'applied', 'viewed', 'screening', 
+                               'interview_scheduled', 'interviewed', 'offer_received',
+                               'offer_accepted', 'offer_declined', 'rejected', 'withdrawn')),
+                    application_method TEXT
+                        CHECK (application_method IS NULL OR application_method IN 
+                               ('company_portal', 'linkedin', 'email', 'referral', 'career_fair', 'other')),
+                    
                     applied_date DATE,
                     response_date DATE,
                     interview_date TIMESTAMP,
-                    notes TEXT,
+                    follow_up_date DATE,
+                    next_action_date DATE,
+                    
                     cover_letter_path TEXT,
                     resume_path TEXT,
-                    follow_up_date DATE,
+                    portfolio_url TEXT,
+                    
+                    salary_expectation_min REAL,
+                    salary_expectation_max REAL,
+                    salary_currency TEXT DEFAULT 'USD',
+                    
+                    rejection_reason TEXT,
+                    interview_notes TEXT,
+                    notes TEXT,
+                    rating INTEGER CHECK (rating IS NULL OR (rating >= 1 AND rating <= 5)),
+                    
+                    is_favorite BOOLEAN DEFAULT FALSE,
+                    requires_follow_up BOOLEAN DEFAULT FALSE,
+                    
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (internship_id) REFERENCES internships (id)
+                    
+                    FOREIGN KEY (internship_id) REFERENCES internships (id) ON DELETE SET NULL,
+                    FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL
                 )
             """)
             
-            # Documents table
+            # ================================================================
+            # DOCUMENTS
+            # ================================================================
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS documents (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     application_id INTEGER,
-                    document_type TEXT,
+                    document_type TEXT NOT NULL DEFAULT 'other'
+                        CHECK (document_type IN ('resume', 'cover_letter', 'portfolio', 
+                               'transcript', 'certificate', 'other')),
                     file_path TEXT NOT NULL,
                     file_name TEXT NOT NULL,
                     file_size INTEGER,
-                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    mime_type TEXT,
+                    version INTEGER DEFAULT 1,
+                    is_default BOOLEAN DEFAULT FALSE,
                     notes TEXT,
-                    FOREIGN KEY (application_id) REFERENCES applications (id)
+                    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
                 )
             """)
             
-            # Offers received table
+            # ================================================================
+            # OFFERS_RECEIVED
+            # ================================================================
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS offers_received (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     application_id INTEGER,
                     company_id INTEGER,
                     position_title TEXT NOT NULL,
-                    salary_offered TEXT,
+                    
+                    salary_offered REAL,
+                    salary_currency TEXT DEFAULT 'USD',
+                    salary_interval TEXT DEFAULT 'yearly',
+                    signing_bonus REAL,
+                    relocation_bonus REAL,
+                    
                     benefits TEXT,
+                    stock_options TEXT,
+                    vacation_days INTEGER,
+                    
+                    contract_type TEXT DEFAULT 'internship'
+                        CHECK (contract_type IN ('internship', 'fulltime', 'parttime', 'contract')),
+                    duration TEXT,
+                    location TEXT,
+                    is_remote BOOLEAN DEFAULT FALSE,
+                    
                     start_date DATE,
                     response_deadline DATE,
-                    status TEXT DEFAULT 'Pending',
-                    contract_type TEXT,
-                    location TEXT,
-                    notes TEXT,
+                    
+                    status TEXT DEFAULT 'pending'
+                        CHECK (status IN ('pending', 'accepted', 'declined', 'negotiating', 'expired')),
+                    decision_reason TEXT,
+                    
                     received_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     responded_date TIMESTAMP,
-                    FOREIGN KEY (application_id) REFERENCES applications (id),
-                    FOREIGN KEY (company_id) REFERENCES companies (id)
+                    notes TEXT,
+                    
+                    FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE SET NULL,
+                    FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL
                 )
             """)
             
-            # Create indexes for better performance
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_companies_name ON companies (name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_internships_company ON internships (company_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_internships_url ON internships (url)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_applications_internship ON applications (internship_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts (company_id)")
+            # ================================================================
+            # SAVED_SEARCHES
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS saved_searches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    search_terms TEXT,
+                    locations TEXT,
+                    sites TEXT,
+                    job_types TEXT,
+                    is_remote BOOLEAN,
+                    salary_min REAL,
+                    salary_max REAL,
+                    experience_levels TEXT,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    last_run TIMESTAMP,
+                    run_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes
+            self._create_indexes(cursor)
             
             conn.commit()
             logger.info("Database tables created successfully")
     
-    def get_connection(self):
-        """Get database connection with row factory for dict-like access"""
+    def _create_indexes(self, cursor):
+        """Create indexes for query optimization."""
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_companies_name ON companies (name)",
+            "CREATE INDEX IF NOT EXISTS idx_companies_normalized ON companies (name_normalized)",
+            "CREATE INDEX IF NOT EXISTS idx_companies_country ON companies (country)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_company ON internships (company_id)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_job_url ON internships (job_url)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_site ON internships (site)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_status ON internships (status)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_remote ON internships (is_remote)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_date_posted ON internships (date_posted)",
+            "CREATE INDEX IF NOT EXISTS idx_internships_date_scraped ON internships (date_scraped)",
+            "CREATE INDEX IF NOT EXISTS idx_applications_status ON applications (status)",
+            "CREATE INDEX IF NOT EXISTS idx_applications_internship ON applications (internship_id)",
+            "CREATE INDEX IF NOT EXISTS idx_scrape_runs_status ON scrape_runs (status)",
+            "CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts (company_id)",
+        ]
+        for idx in indexes:
+            try:
+                cursor.execute(idx)
+            except sqlite3.OperationalError:
+                pass
+    
+    def get_connection(self) -> sqlite3.Connection:
+        """Get database connection with row factory."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
     
-    def find_company_by_name(self, company_name):
-        """Find company by name"""
+    # ========================================================================
+    # SCRAPE RUN METHODS
+    # ========================================================================
+    
+    def start_scrape_run(self, search_terms: List[str] = None, 
+                        locations: List[str] = None, 
+                        sites: List[str] = None) -> int:
+        """Start a new scrape run and return its ID."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM companies WHERE name = ? COLLATE NOCASE", (company_name,))
-            result = cursor.fetchone()
-            return dict(result) if result else None
+            cursor.execute("""
+                INSERT INTO scrape_runs (search_terms, locations, sites, status)
+                VALUES (?, ?, ?, 'running')
+            """, (
+                json.dumps(search_terms or []),
+                json.dumps(locations or []),
+                json.dumps(sites or [])
+            ))
+            conn.commit()
+            run_id = cursor.lastrowid
+            logger.info(f"Started scrape run {run_id}")
+            return run_id
     
-    def create_company(self, company_name, website=None, industry=None, country=None, description=None):
-        """Create a new company record"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO companies (name, website, industry, country, description)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (company_name, website, industry, country, description))
-                
-                company_id = cursor.lastrowid
-                conn.commit()
-                
-                logger.info(f"Created company: {company_name} (ID: {company_id})")
-                return company_id
-                
-        except sqlite3.IntegrityError as e:
-            logger.warning(f"Company {company_name} already exists: {e}")
-            # Return existing company
-            existing = self.find_company_by_name(company_name)
-            return existing['id'] if existing else None
-        except Exception as e:
-            logger.error(f"Failed to create company {company_name}: {e}")
-            return None
+    def complete_scrape_run(self, run_id: int, total_found: int = 0, 
+                           new_jobs: int = 0, duplicates: int = 0, 
+                           errors: int = 0, error_message: str = None):
+        """Mark scrape run as completed with statistics."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            status = 'failed' if error_message else 'completed'
+            cursor.execute("""
+                UPDATE scrape_runs SET
+                    completed_at = CURRENT_TIMESTAMP,
+                    status = ?,
+                    total_found = ?,
+                    new_jobs = ?,
+                    duplicates = ?,
+                    errors = ?,
+                    error_message = ?
+                WHERE id = ?
+            """, (status, total_found, new_jobs, duplicates, errors, error_message, run_id))
+            conn.commit()
+            logger.info(f"Completed scrape run {run_id}: {new_jobs} new, {duplicates} dupes")
     
-    def find_internship_by_url(self, url):
-        """Find internship by URL"""
-        if not url:
-            return None
+    def list_scrape_runs(self, limit: int = 20) -> List[Dict]:
+        """List recent scrape runs."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM scrape_runs ORDER BY started_at DESC LIMIT ?
+            """, (limit,))
+            return [dict(r) for r in cursor.fetchall()]
+    
+    # ========================================================================
+    # COMPANY METHODS
+    # ========================================================================
+    
+    def find_company_by_name(self, name: str, country: str = None) -> Optional[Dict]:
+        """Find company by name (case-insensitive)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            normalized = name.lower().strip()
             
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM internships WHERE url = ?", (url,))
+            if country:
+                cursor.execute("""
+                    SELECT * FROM companies 
+                    WHERE name_normalized = ? AND country = ?
+                """, (normalized, country))
+            else:
+                cursor.execute("""
+                    SELECT * FROM companies WHERE name_normalized = ?
+                """, (normalized,))
+            
             result = cursor.fetchone()
             return dict(result) if result else None
     
-    def create_internship(self, job_data, company_id):
-        """Create a new internship record"""
+    def create_company(self, data: Dict[str, Any]) -> Optional[int]:
+        """Create company from JobSpy data."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
+                name = data.get('company') or data.get('name', 'Unknown')
+                
                 cursor.execute("""
-                    INSERT INTO internships 
-                    (company_id, title, description, location, url, status, is_remote)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO companies (
+                        name, name_normalized, website, company_url, company_url_direct,
+                        logo_url, industry, country, city, addresses, num_employees,
+                        revenue, description
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
-                    company_id,
-                    job_data.get('title', 'Unknown Position'),
-                    job_data.get('description', ''),
-                    job_data.get('location', ''),
-                    job_data.get('url'),
-                    'Open',
-                    'remote' in job_data.get('location', '').lower()
+                    name,
+                    name.lower().strip(),
+                    data.get('company_url'),
+                    data.get('company_url'),
+                    data.get('company_url_direct'),
+                    data.get('logo_photo_url'),
+                    data.get('company_industry'),
+                    data.get('country'),
+                    data.get('city'),
+                    json.dumps(data.get('company_addresses')) if data.get('company_addresses') else None,
+                    data.get('company_num_employees'),
+                    data.get('company_revenue'),
+                    data.get('company_description')
                 ))
                 
-                internship_id = cursor.lastrowid
                 conn.commit()
+                company_id = cursor.lastrowid
+                logger.info(f"Created company: {name} (ID: {company_id})")
+                return company_id
                 
-                logger.info(f"Created internship: {job_data.get('title')} (ID: {internship_id})")
-                return internship_id
-                
-        except sqlite3.IntegrityError as e:
-            logger.warning(f"Internship with URL {job_data.get('url')} already exists: {e}")
-            existing = self.find_internship_by_url(job_data.get('url'))
+        except sqlite3.IntegrityError:
+            existing = self.find_company_by_name(
+                data.get('company') or data.get('name', 'Unknown')
+            )
             return existing['id'] if existing else None
         except Exception as e:
-            logger.error(f"Failed to create internship {job_data.get('title')}: {e}")
+            logger.error(f"Failed to create company: {e}")
             return None
     
-    def ensure_company_and_internship(self, job_data):
-        """Ensure company exists and create internship"""
-        try:
-            # Check if company exists
-            company = self.find_company_by_name(job_data['company'])
-            
-            if company:
-                company_id = company['id']
-                logger.info(f"Company exists: {job_data['company']} (ID: {company_id})")
-            else:
-                # Create company
-                company_id = self.create_company(job_data['company'])
-                if not company_id:
-                    logger.error("Failed to create company, skipping internship creation")
-                    return None
-            
-            # Check if internship already exists
-            if job_data.get('url'):
-                existing_internship = self.find_internship_by_url(job_data['url'])
-                if existing_internship:
-                    logger.info(f"Internship already exists: {job_data['url']}")
-                    return existing_internship['id']
-            
-            # Create internship
-            internship_id = self.create_internship(job_data, company_id)
-            return internship_id
-            
-        except Exception as e:
-            logger.exception(f"Failed to process job {job_data.get('title', 'Unknown')}: {e}")
-            return None
-    
-    def get_stats(self):
-        """Get database statistics"""
+    def list_companies(self, search: str = None, industry: str = None,
+                      country: str = None, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """List companies with optional filters."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            stats = {}
-            tables = ['companies', 'contacts', 'internships', 'applications', 'documents', 'offers_received']
-            
-            for table in tables:
-                cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
-                stats[table] = cursor.fetchone()['count']
-            
-            return stats
-
-    def list_internships(self, search: str | None = None, limit: int = 25, offset: int = 0):
-        """Return a list of internships joined with company name.
-        Parameters:
-        - search: optional text to search in title, company or location
-        - limit, offset: pagination
-
-        Returns: list of dict rows
-        """
-    
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            base = (
-                "SELECT internships.id, internships.title, internships.description, "
-                "internships.location, internships.url, internships.status, internships.created_at, companies.name as company "
-                "FROM internships LEFT JOIN companies ON internships.company_id = companies.id"
-            )
-            params = []
-            if search:
-                base += " WHERE (internships.title LIKE ? OR companies.name LIKE ? OR internships.location LIKE ?)"
-                q = f"%{search}%"
-                params.extend([q, q, q])
-
-            # base += " ORDER BY internships.created_at DESC LIMIT ? OFFSET ?"
-            # params.extend([limit, offset])
-
-            cursor.execute(base, params)
-            rows = cursor.fetchall()
-            return [dict(r) for r in rows]
-
-    def list_companies(self, search: str | None = None, industry: str | None = None,
-                       country: str | None = None, limit: int = 50, offset: int = 0):
-        """Return a paginated list of companies with optional filters."""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            base = ("SELECT id, name, website, industry, country, description, created_at "
-                    "FROM companies")
+            query = "SELECT * FROM companies"
             params = []
             clauses = []
+            
             if search:
                 clauses.append("(name LIKE ? OR description LIKE ?)")
                 q = f"%{search}%"
@@ -369,18 +562,307 @@ class DatabaseClient:
             if country:
                 clauses.append("country = ?")
                 params.append(country)
-
+            
             if clauses:
-                base += " WHERE " + " AND ".join(clauses)
-
-            base += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+                query += " WHERE " + " AND ".join(clauses)
+            
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])
-
-            cursor.execute(base, params)
-            rows = cursor.fetchall()
-            return [dict(r) for r in rows]
+            
+            cursor.execute(query, params)
+            return [dict(r) for r in cursor.fetchall()]
+    
+    # ========================================================================
+    # INTERNSHIP METHODS
+    # ========================================================================
+    
+    def find_internship_by_url(self, url: str) -> Optional[Dict]:
+        """Find internship by job URL."""
+        if not url:
+            return None
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM internships WHERE job_url = ?", (url,))
+            result = cursor.fetchone()
+            return dict(result) if result else None
+    
+    def create_internship(self, data: Dict[str, Any], company_id: int = None,
+                         scrape_run_id: int = None) -> Optional[int]:
+        """Create internship from normalized JobSpy data."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Determine site value - validate against CHECK constraint
+                site = (data.get('site') or 'other').lower()
+                valid_sites = ['linkedin', 'indeed', 'glassdoor', 'zip_recruiter', 'google', 'other']
+                if site not in valid_sites:
+                    site = 'other'
+                
+                # Determine job_type - validate against CHECK constraint
+                job_type = (data.get('job_type') or 'internship').lower()
+                valid_types = ['fulltime', 'parttime', 'contract', 'internship', 'temporary', 'other']
+                if job_type not in valid_types:
+                    job_type = 'internship'
+                
+                # Salary interval validation
+                interval = (data.get('interval') or 'unknown').lower()
+                valid_intervals = ['yearly', 'monthly', 'weekly', 'daily', 'hourly', 'unknown']
+                if interval not in valid_intervals:
+                    interval = 'unknown'
+                
+                cursor.execute("""
+                    INSERT INTO internships (
+                        company_id, scrape_run_id, title, description, location,
+                        city, state, country, job_url, job_url_direct,
+                        site, job_type, job_level, job_function,
+                        salary_min, salary_max, salary_currency, salary_interval, salary_source,
+                        is_remote, date_posted, application_deadline,
+                        duration, benefits, requirements, skills, experience_level,
+                        emails, status, raw_data
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    company_id,
+                    scrape_run_id,
+                    data.get('title', 'Unknown Position'),
+                    data.get('description', ''),
+                    data.get('location', ''),
+                    data.get('city'),
+                    data.get('state'),
+                    data.get('country'),
+                    data.get('job_url'),
+                    data.get('job_url_direct'),
+                    site,
+                    job_type,
+                    data.get('job_level'),
+                    data.get('job_function'),
+                    data.get('min_amount'),
+                    data.get('max_amount'),
+                    data.get('currency', 'USD'),
+                    interval,
+                    data.get('salary_source'),
+                    data.get('is_remote', False),
+                    data.get('date_posted'),
+                    data.get('application_deadline'),
+                    data.get('duration'),
+                    data.get('benefits'),
+                    data.get('requirements'),
+                    json.dumps(data.get('skills')) if data.get('skills') else None,
+                    data.get('experience_level'),
+                    json.dumps(data.get('emails')) if data.get('emails') else None,
+                    'open',
+                    json.dumps(data.get('raw', data), default=str)
+                ))
+                
+                conn.commit()
+                internship_id = cursor.lastrowid
+                logger.info(f"Created internship: {data.get('title')} (ID: {internship_id})")
+                return internship_id
+                
+        except sqlite3.IntegrityError as e:
+            logger.warning(f"Internship already exists: {data.get('job_url')}")
+            existing = self.find_internship_by_url(data.get('job_url'))
+            return existing['id'] if existing else None
+        except Exception as e:
+            logger.error(f"Failed to create internship: {e}")
+            return None
+    
+    def ensure_company_and_internship(self, job_data: Dict[str, Any], 
+                                      scrape_run_id: int = None) -> Optional[int]:
+        """Process job: ensure company exists and create internship."""
+        try:
+            company_name = job_data.get('company', 'Unknown')
+            
+            # Find or create company
+            company = self.find_company_by_name(company_name)
+            if company:
+                company_id = company['id']
+            else:
+                company_id = self.create_company(job_data)
+                if not company_id:
+                    logger.error(f"Failed to create company: {company_name}")
+                    return None
+            
+            # Check for duplicate
+            job_url = job_data.get('job_url') or job_data.get('url')
+            if job_url:
+                existing = self.find_internship_by_url(job_url)
+                if existing:
+                    logger.debug(f"Internship exists: {job_url}")
+                    return existing['id']
+            
+            # Create internship
+            return self.create_internship(job_data, company_id, scrape_run_id)
+            
+        except Exception as e:
+            logger.exception(f"Failed to process job: {e}")
+            return None
+    
+    def list_internships(self, search: str = None, site: str = None,
+                        is_remote: bool = None, status: str = None,
+                        limit: int = 50, offset: int = 0) -> List[Dict]:
+        """List internships with filters."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT i.*, c.name as company_name, c.logo_url as company_logo
+                FROM internships i
+                LEFT JOIN companies c ON i.company_id = c.id
+            """
+            params = []
+            clauses = []
+            
+            if search:
+                clauses.append("(i.title LIKE ? OR c.name LIKE ? OR i.location LIKE ?)")
+                q = f"%{search}%"
+                params.extend([q, q, q])
+            if site:
+                clauses.append("i.site = ?")
+                params.append(site)
+            if is_remote is not None:
+                clauses.append("i.is_remote = ?")
+                params.append(is_remote)
+            if status:
+                clauses.append("i.status = ?")
+                params.append(status)
+            
+            if clauses:
+                query += " WHERE " + " AND ".join(clauses)
+            
+            query += " ORDER BY i.date_scraped DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+            
+            cursor.execute(query, params)
+            return [dict(r) for r in cursor.fetchall()]
+    
+    def get_internship(self, internship_id: int) -> Optional[Dict]:
+        """Get internship by ID with company info."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT i.*, c.name as company_name, c.logo_url as company_logo,
+                       c.website as company_website
+                FROM internships i
+                LEFT JOIN companies c ON i.company_id = c.id
+                WHERE i.id = ?
+            """, (internship_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    # ========================================================================
+    # APPLICATION METHODS
+    # ========================================================================
+    
+    def create_application(self, internship_id: int, data: Dict[str, Any] = None) -> Optional[int]:
+        """Create a new application."""
+        data = data or {}
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get company_id from internship
+            cursor.execute("SELECT company_id FROM internships WHERE id = ?", (internship_id,))
+            row = cursor.fetchone()
+            company_id = row['company_id'] if row else None
+            
+            cursor.execute("""
+                INSERT INTO applications (
+                    internship_id, company_id, status, application_method,
+                    applied_date, notes
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                internship_id,
+                company_id,
+                data.get('status', 'draft'),
+                data.get('application_method'),
+                data.get('applied_date'),
+                data.get('notes')
+            ))
+            
+            conn.commit()
+            return cursor.lastrowid
+    
+    def update_application_status(self, application_id: int, status: str, 
+                                 notes: str = None) -> bool:
+        """Update application status."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE applications SET 
+                    status = ?, notes = COALESCE(?, notes),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (status, notes, application_id))
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def list_applications(self, status: str = None, limit: int = 50) -> List[Dict]:
+        """List applications with internship and company info."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT a.*, i.title as job_title, c.name as company_name
+                FROM applications a
+                LEFT JOIN internships i ON a.internship_id = i.id
+                LEFT JOIN companies c ON a.company_id = c.id
+            """
+            params = []
+            
+            if status:
+                query += " WHERE a.status = ?"
+                params.append(status)
+            
+            query += " ORDER BY a.updated_at DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor.execute(query, params)
+            return [dict(r) for r in cursor.fetchall()]
+    
+    # ========================================================================
+    # STATISTICS
+    # ========================================================================
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get database statistics."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            stats = {}
+            tables = ['companies', 'internships', 'applications', 'contacts',
+                     'documents', 'offers_received', 'scrape_runs', 'job_tags', 'saved_searches']
+            
+            for table in tables:
+                try:
+                    cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
+                    stats[table] = cursor.fetchone()['count']
+                except:
+                    stats[table] = 0
+            
+            # Additional stats (wrapped in try/except for empty tables)
+            try:
+                cursor.execute("SELECT COUNT(*) FROM internships WHERE is_remote = 1")
+                stats['remote_jobs'] = cursor.fetchone()[0]
+            except:
+                stats['remote_jobs'] = 0
+            
+            try:
+                cursor.execute("SELECT COUNT(DISTINCT site) FROM internships")
+                stats['sources'] = cursor.fetchone()[0]
+            except:
+                stats['sources'] = 0
+            
+            try:
+                cursor.execute("""
+                    SELECT site, COUNT(*) as count FROM internships 
+                    GROUP BY site ORDER BY count DESC
+                """)
+                stats['jobs_by_site'] = {r['site']: r['count'] for r in cursor.fetchall()}
+            except:
+                stats['jobs_by_site'] = {}
+            
+            return stats
     
     def close(self):
-        """Close database connection (for cleanup)"""
-        # SQLite connections are closed automatically with context managers
+        """Cleanup (connections auto-close with context managers)."""
         pass
