@@ -666,15 +666,42 @@ function escapeHtml(s){
   return String(s).replace(/[&<>\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);
 }
 
+function updateRowCounter(currentItems, total) {
+  const resultsInfo = $('#resultsInfo');
+  const rowCount = $('#rowCount');
+  const totalInfo = $('#totalInfo');
+  const totalCount = $('#totalCount');
+  
+  if (resultsInfo && rowCount) {
+    rowCount.textContent = currentItems;
+    
+    if (total && total > currentItems) {
+      totalCount.textContent = total;
+      totalInfo.classList.remove('hidden');
+    } else {
+      totalInfo.classList.add('hidden');
+    }
+    
+    resultsInfo.classList.remove('hidden');
+  }
+}
+
 async function loadPage(){
   const list = $('#list');
   $('#loading').style.display = 'block';
   $('#table').classList.add('hidden');
+  $('#resultsInfo').classList.add('hidden');
+  
   try{
     const data = await fetchInternships();
-    renderRows(data.items || []);
+    const items = data.items || [];
+    
+    renderRows(items);
+    updateRowCounter(items.length, data.total || 0);
+    
     $('#loading').style.display = 'none';
     $('#table').classList.remove('hidden');
+    
     // render pagination
     renderPagination('#pagination', state.page, state.per_page, data.total || 0, (p)=>{ state.page = p; loadPage(); });
   }catch(err){
