@@ -7,6 +7,7 @@ Author: El Moujahid Marouane
 Version: 1.0
 """
 
+from datetime import datetime
 from typing import Optional
 
 from .base import ServiceResult
@@ -100,39 +101,43 @@ class CompanyService:
     
     def enrich_company(self, company_id: int, website_url: str = None) -> ServiceResult:
         """
-        Enrich company data by scraping their website.
+        Enrich company data to fill: Description, Contacts, LinkedIn, Website.
+        
+        Uses lazy evaluation - stops as soon as all target fields are filled.
+        Tries sources in order: existing website → resolve website → LinkedIn → Wikipedia → Google
         
         Args:
             company_id: Company ID
-            website_url: Optional override for website URL
+            website_url: Optional override for website URL (will update DB first)
             
         Returns:
             ServiceResult with enriched data
         """
-        # Get company
-        result = self.get_company(company_id)
-        if not result.success:
-            return result
-        
-        company = result.data
-        
-        # Determine website URL
-        url = website_url or company.get('website') or company.get('company_url')
-        if not url:
-            return ServiceResult(
-                success=False, 
-                error='No website URL available for this company',
-                status_code=400
-            )
-        
-        # Enrich
         enricher = CompanyEnricher(db_client=self.db)
+        
         try:
-            enriched_data = enricher.enrich_company(company_id, url)
+            # If website URL provided, update the company first
+            if website_url:
+                with self.db.get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        'UPDATE companies SET website = ?, updated_at = ? WHERE id = ?',
+                        (website_url, datetime.utcnow().isoformat(), company_id)
+                    )
+                    conn.commit()
+            
+            # Use the simplified enrich method (takes only company_id)
+            enriched_data = enricher.enrich(company_id)
+            
             return ServiceResult(success=True, data={
                 'company_id': company_id,
-                'enriched_data': enriched_data
+                'enriched_data': enriched_data,
+                'target_complete': enriched_data.get('target_complete', False),
+                'sources': enriched_data.get('sources', []),
+                'fields_updated': enriched_data.get('fields_updated', [])
             })
+        except ValueError as e:
+            return ServiceResult(success=False, error=str(e), status_code=404)
         except Exception as e:
             logger.error(f"Enrichment failed for company {company_id}: {e}")
             return ServiceResult(success=False, error=str(e), status_code=500)
