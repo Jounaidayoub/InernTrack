@@ -144,13 +144,10 @@ class CompanyService:
     
     def get_unenriched_companies(self) -> ServiceResult:
         """
-        Get companies that haven't been fully enriched.
+        Get companies that haven't been enriched yet.
         
-        A company is considered unenriched if it's missing:
-        - description OR
-        - linkedin_url OR
-        - website OR
-        - has no contacts
+        Uses the is_enriched column to determine enrichment status.
+        Companies with is_enriched = FALSE or NULL are returned.
         
         Returns:
             ServiceResult with list of unenriched company IDs and names
@@ -159,16 +156,14 @@ class CompanyService:
             with self.db.get_connection() as conn:
                 cur = conn.cursor()
                 
-                # Get companies missing key fields or with no contacts
+                # Get companies where is_enriched is FALSE or NULL
                 cur.execute('''
                     SELECT c.id, c.name, c.website, c.linkedin_url,
                            CASE WHEN c.description IS NULL OR c.description = '' THEN 0 ELSE 1 END as has_description,
-                           (SELECT COUNT(*) FROM contacts WHERE company_id = c.id) as contact_count
+                           (SELECT COUNT(*) FROM contacts WHERE company_id = c.id) as contact_count,
+                           c.is_enriched
                     FROM companies c
-                    WHERE c.description IS NULL OR c.description = ''
-                       OR c.linkedin_url IS NULL OR c.linkedin_url = ''
-                       OR c.website IS NULL OR c.website = ''
-                       OR (SELECT COUNT(*) FROM contacts WHERE company_id = c.id) = 0
+                    WHERE c.is_enriched IS NULL OR c.is_enriched = 0
                     ORDER BY c.name
                 ''')
                 
@@ -180,7 +175,8 @@ class CompanyService:
                         'has_website': bool(row['website']),
                         'has_linkedin': bool(row['linkedin_url']),
                         'has_description': bool(row['has_description']),
-                        'contact_count': row['contact_count']
+                        'contact_count': row['contact_count'],
+                        'is_enriched': bool(row['is_enriched']) if row['is_enriched'] is not None else False
                     })
                 
                 return ServiceResult(success=True, data={
@@ -254,6 +250,34 @@ class CompanyService:
             'results': results,
             'errors': errors
         })
+    
+    def reset_enrichment_status(self, company_id: int) -> ServiceResult:
+        """
+        Reset the enrichment status of a company to allow re-enrichment.
+        
+        Args:
+            company_id: Company ID to reset
+            
+        Returns:
+            ServiceResult indicating success or failure
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute('''
+                    UPDATE companies 
+                    SET is_enriched = 0, enriched_at = NULL, updated_at = ?
+                    WHERE id = ?
+                ''', (datetime.utcnow().isoformat(), company_id))
+                conn.commit()
+                
+                if cur.rowcount == 0:
+                    return ServiceResult(success=False, error='Company not found', status_code=404)
+                
+                return ServiceResult(success=True, data={'company_id': company_id, 'is_enriched': False})
+        except Exception as e:
+            logger.error(f"Failed to reset enrichment status for company {company_id}: {e}")
+            return ServiceResult(success=False, error=str(e), status_code=500)
     
     def _get_total_count(self, table: str) -> Optional[int]:
         """Get total count for a table."""

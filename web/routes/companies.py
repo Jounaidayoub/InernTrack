@@ -37,6 +37,12 @@ class CompaniesController(BaseController):
             self.batch_enrich,
             methods=['POST']
         )
+        self.bp.add_url_rule(
+            '/api/company/<int:company_id>/reset-enrichment',
+            'api_reset_enrichment',
+            self.reset_enrichment,
+            methods=['POST']
+        )
     
     def list_companies(self):
         """List companies with filters and pagination."""
@@ -113,6 +119,20 @@ class CompaniesController(BaseController):
             return jsonify({
                 'success': True,
                 **result.data
+            })
+        else:
+            return self.error_response(result.error, result.status_code)
+    
+    def reset_enrichment(self, company_id: int):
+        """Reset enrichment status to allow re-enrichment."""
+        service = CompanyService()
+        result = service.reset_enrichment_status(company_id)
+        
+        if result.success:
+            return jsonify({
+                'success': True,
+                'company_id': company_id,
+                'message': 'Enrichment status reset'
             })
         else:
             return self.error_response(result.error, result.status_code)

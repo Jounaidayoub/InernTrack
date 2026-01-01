@@ -763,18 +763,21 @@ class CompanyEnricher:
         if result.num_employees and not company.get('num_employees'):
             updates['num_employees'] = result.num_employees
         
+        # Mark as enriched (always set this after enrichment attempt)
+        updates['is_enriched'] = True
+        updates['enriched_at'] = datetime.utcnow().isoformat()
+        updates['updated_at'] = datetime.utcnow().isoformat()
+        
         # Apply updates to database
-        if updates:
-            updates['updated_at'] = datetime.utcnow().isoformat()
-            set_clause = ', '.join(f"{k} = ?" for k in updates.keys())
-            values = list(updates.values()) + [company_id]
-            
-            with self.db.get_connection() as conn:
-                cur = conn.cursor()
-                cur.execute(f"UPDATE companies SET {set_clause} WHERE id = ?", values)
-                conn.commit()
-            
-            self.logger.info(f"Updated company {company_id}: {list(updates.keys())}")
+        set_clause = ', '.join(f"{k} = ?" for k in updates.keys())
+        values = list(updates.values()) + [company_id]
+        
+        with self.db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"UPDATE companies SET {set_clause} WHERE id = ?", values)
+            conn.commit()
+        
+        self.logger.info(f"Updated company {company_id}: {list(updates.keys())}")
         
         # Save contacts
         for contact_data in result.contacts:

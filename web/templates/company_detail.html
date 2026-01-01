@@ -33,15 +33,37 @@
             {% if company.num_employees %}
             <span><i class="fas fa-users mr-1 text-blue-400"></i> {{ company.num_employees }}</span>
             {% endif %}
+            <!-- Enrichment Status Badge -->
+            {% if company.is_enriched %}
+            <span class="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-medium flex items-center gap-1">
+              <i class="fas fa-check-circle"></i> Enriched
+            </span>
+            {% else %}
+            <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-medium flex items-center gap-1">
+              <i class="fas fa-exclamation-circle"></i> Not Enriched
+            </span>
+            {% endif %}
           </div>
         </div>
       </div>
-      <!-- Enrich Button -->
-      <button id="enrichBtn" 
-              onclick="enrichCompany({{ company.id }})"
-              class="btn-accent px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shrink-0">
-        <i class="fas fa-magic"></i> Enrich Data
-      </button>
+      <!-- Enrich Buttons -->
+      <div class="flex items-center gap-2 shrink-0">
+        {% if company.is_enriched %}
+        <button id="resetEnrichBtn" 
+                onclick="resetEnrichment({{ company.id }})"
+                class="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
+                title="Reset enrichment to allow re-enrichment">
+          <i class="fas fa-redo"></i> Reset
+        </button>
+        {% endif %}
+        <button id="enrichBtn" 
+                onclick="enrichCompany({{ company.id }})"
+                class="btn-accent px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+                {% if company.is_enriched %}title="Already enriched. Click Reset first to re-enrich."{% endif %}>
+          <i class="fas fa-magic"></i> 
+          {% if company.is_enriched %}Re-Enrich{% else %}Enrich Data{% endif %}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -358,6 +380,38 @@
 <script>
   const COMPANY_ID = {{ company.id }};
   
+  // Reset enrichment status
+  async function resetEnrichment(companyId) {
+    if (!confirm('Reset enrichment status? This will allow re-enriching this company.')) return;
+    
+    const btn = document.getElementById('resetEnrichBtn');
+    if (btn) {
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+    }
+    
+    try {
+      const res = await fetch(`/api/company/${companyId}/reset-enrichment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert('Failed to reset enrichment: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.innerHTML = '<i class="fas fa-redo"></i> Reset';
+        btn.disabled = false;
+      }
+    }
+  }
+  
   // Enrich company data
   async function enrichCompany(companyId) {
     const btn = document.getElementById('enrichBtn');
@@ -373,6 +427,13 @@
       });
       const data = await res.json();
       
+      if (data.success) {
+        const enriched = data.enriched_data || {};
+        alert(`Enrichment complete!\n\nEmails found: ${enriched.emails?.length || 0}\nDescription: ${enriched.description ? 'Yes' : 'No'}\nLinkedIn: ${enriched.linkedin_url ? 'Yes' : 'No'}\nFields updated: ${enriched.fields_updated?.join(', ') || 'None'}`);
+        window.location.reload();
+      } else {
+        alert('Enrichment failed: ' + (data.error || 'Unknown error'));
+      }
     } catch (err) {
       alert('Error: ' + err.message);
     } finally {
