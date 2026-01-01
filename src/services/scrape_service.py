@@ -105,6 +105,7 @@ class ScrapeRunner:
         """Get current scrape status."""
         return {
             'status': self.status,
+            'is_running': self.status == 'running',
             'progress': self.progress,
             'scrape_run_id': self.scrape_run_id,
             'started_at': self.started_at,
@@ -416,9 +417,11 @@ class ScrapeService:
     def get_logs(self, since_index: int = 0) -> ServiceResult:
         """Get scrape logs."""
         logs = self.runner.get_logs(since_index)
+        total = len(self.runner.log_handler.logs)
         return ServiceResult(success=True, data={
             'logs': logs,
-            'total': len(self.runner.log_handler.logs),
+            'total': total,
+            'next_index': total,  # Next index to query from
         })
     
     def start_scrape(self) -> ServiceResult:

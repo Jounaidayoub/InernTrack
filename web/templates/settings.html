@@ -618,7 +618,7 @@ async function stopScrape() {
     }
 }
 
-function updateScrapeUI(running) {
+function updateScrapeUI(running, status = null) {
     const startBtn = document.getElementById('startScrapeBtn');
     const stopBtn = document.getElementById('stopScrapeBtn');
     const statusBadge = document.getElementById('statusBadge');
@@ -632,9 +632,26 @@ function updateScrapeUI(running) {
         statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
         progressDiv.classList.remove('hidden');
     } else {
-        statusBadge.textContent = 'Idle';
-        statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700';
-        progressDiv.classList.add('hidden');
+        // Show final status based on completion status
+        if (status === 'completed') {
+            statusBadge.textContent = 'Completed';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
+        } else if (status === 'failed') {
+            statusBadge.textContent = 'Failed';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700';
+        } else if (status === 'cancelled') {
+            statusBadge.textContent = 'Cancelled';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700';
+        } else {
+            statusBadge.textContent = 'Idle';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700';
+        }
+        // Keep progress visible for a moment after completion
+        if (status && status !== 'idle') {
+            // Don't hide progress immediately
+        } else {
+            progressDiv.classList.add('hidden');
+        }
     }
 }
 
@@ -645,15 +662,15 @@ async function checkScrapeStatus() {
         const data = await response.json();
         
         isRunning = data.is_running;
-        updateScrapeUI(data.is_running);
+        updateScrapeUI(data.is_running, data.status);
         
         if (data.is_running) {
             startPolling();
         }
         
         // Update stats if available
-        if (data.stats) {
-            updateStats(data.stats);
+        if (data.progress) {
+            updateStats(data.progress);
         }
     } catch (error) {
         console.error('Error checking status:', error);
@@ -679,21 +696,26 @@ function startPolling() {
             const statusResponse = await fetch('/api/scrape/status');
             const statusData = await statusResponse.json();
             
+            // Update progress if available
+            if (statusData.progress) {
+                updateStats(statusData.progress);
+            }
+            
             if (!statusData.is_running && isRunning) {
-                // Scrape finished
+                // Scrape finished - update UI with final status
                 isRunning = false;
-                updateScrapeUI(false);
+                updateScrapeUI(false, statusData.status);
                 stopPolling();
                 loadScrapeHistory();
-                showNotification('Scraping completed!', 'success');
-            }
-            
-            if (statusData.stats) {
-                updateStats(statusData.stats);
-            }
-            
-            if (statusData.progress) {
-                updateProgress(statusData.progress);
+                
+                // Show appropriate notification based on status
+                if (statusData.status === 'completed') {
+                    showNotification('Scraping completed successfully!', 'success');
+                } else if (statusData.status === 'failed') {
+                    showNotification('Scraping failed: ' + (statusData.error_message || 'Unknown error'), 'error');
+                } else if (statusData.status === 'cancelled') {
+                    showNotification('Scraping was cancelled', 'warning');
+                }
             }
         } catch (error) {
             console.error('Error polling:', error);
@@ -719,10 +741,28 @@ function updateProgress(progress) {
     progressText.textContent = progress.message || 'Processing...';
 }
 
-function updateStats(stats) {
-    document.getElementById('scrapeStats').classList.remove('hidden');
-    document.getElementById('jobsFound').textContent = stats.jobs_found || 0;
-    document.getElementById('newJobs').textContent = stats.new_jobs || 0;
+function updateStats(progress) {
+    const statsDiv = document.getElementById('scrapeStats');
+    statsDiv.classList.remove('hidden');
+    
+    // Progress object contains: total_found, processed, new_jobs, duplicates, errors
+    document.getElementById('jobsFound').textContent = progress.total_found || 0;
+    document.getElementById('newJobs').textContent = progress.new_jobs || 0;
+    
+    // Calculate and update progress bar
+    const total = progress.total_found || 0;
+    const processed = progress.processed || 0;
+    
+    if (total > 0) {
+        const percent = Math.round((processed / total) * 100);
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
+        
+        progressBar.style.width = `${percent}%`;
+        progressPercent.textContent = `${percent}%`;
+        progressText.textContent = `Processing ${processed}/${total} jobs...`;
+    }
 }
 
 // Log Viewer
@@ -739,7 +779,8 @@ function appendLogs(logs) {
     logs.forEach(log => {
         const line = document.createElement('div');
         line.className = getLogClass(log.level);
-        line.innerHTML = `<span class="text-gray-500">[${log.time}]</span> ${escapeHtml(log.message)}`;
+        const time = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : '';
+        line.innerHTML = `<span class="text-gray-500">[${time}]</span> ${escapeHtml(log.message)}`;
         viewer.appendChild(line);
     });
     
