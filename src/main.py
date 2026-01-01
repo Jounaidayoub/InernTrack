@@ -10,10 +10,12 @@ Orchestrates:
 3. Normalization and filtering
 4. Deduplication by job URL
 5. Database persistence
+6. Contact extraction from job descriptions
 
 Features:
 - Scrape run tracking with statistics
 - Full JobSpy field capture
+- Contact discovery from job postings
 - Dry-run mode for testing
 - Comprehensive logging
 
@@ -25,7 +27,7 @@ Environment Variables:
     DRY_RUN: Set to 'true' for testing
     
 Author: El Moujahid Marouane
-Version: 2.0
+Version: 2.1
 """
 
 from .logger_setup import get_logger
@@ -33,6 +35,7 @@ from .config import settings
 from .jobspy_client import fetch_jobs
 from .normalizer import normalize_job, normalize_jobs
 from .database_client import DatabaseClient
+from .company_enricher import extract_emails_with_context
 import json
 
 logger = get_logger("main", settings.LOG_LEVEL)
@@ -123,7 +126,7 @@ class Pipeline:
         return interns
 
     def process_job(self, job):
-        """Process single job: check duplicate, persist to DB."""
+        """Process single job: check duplicate, persist to DB, extract contacts."""
         logger.info(f"Processing: {job.get('company')} - {job.get('title')}")
 
         if settings.DRY_RUN:
@@ -143,10 +146,80 @@ class Pipeline:
         result = self.db.ensure_company_and_internship(job, self.scrape_run_id)
         if result:
             self.stats["new_jobs"] += 1
+            
+            # Extract contacts from job description
+            company_id = result.get("company_id")
+            if company_id:
+                self._extract_contacts_from_job(job, company_id)
+            
             return True
         else:
             self.stats["errors"] += 1
             return False
+
+    def _extract_contacts_from_job(self, job, company_id):
+        """Extract and save contacts from job description."""
+        description = job.get("description", "")
+        company_name = job.get("company", "")
+        
+        # Also check for emails field from JobSpy
+        jobspy_emails = job.get("emails")
+        if jobspy_emails:
+            if isinstance(jobspy_emails, str):
+                description += " " + jobspy_emails
+            elif isinstance(jobspy_emails, list):
+                description += " " + " ".join(jobspy_emails)
+        
+        if not description:
+            return
+        
+        # Extract contacts
+        contacts = extract_emails_with_context(description)
+        
+        if not contacts:
+            return
+        
+        # Filter and prioritize by company domain
+        if company_name:
+            domain_hint = company_name.lower().replace(' ', '').replace(',', '')[:10]
+            for contact in contacts:
+                domain = contact['email'].split('@')[1].split('.')[0].lower()
+                if domain_hint in domain or domain in domain_hint:
+                    contact['priority'] = 'high'
+        
+        # Save contacts
+        saved = 0
+        for contact in contacts:
+            try:
+                with self.db.get_connection() as conn:
+                    cur = conn.cursor()
+                    
+                    # Check if exists
+                    cur.execute(
+                        'SELECT id FROM contacts WHERE company_id = ? AND email = ?',
+                        (company_id, contact['email'])
+                    )
+                    if cur.fetchone():
+                        continue
+                    
+                    # Insert
+                    cur.execute('''
+                        INSERT INTO contacts (company_id, name, email, position, notes)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (
+                        company_id,
+                        contact['email'].split('@')[0].replace('.', ' ').title(),
+                        contact['email'],
+                        contact.get('type', 'unknown'),
+                        f"Extracted from job posting. {contact.get('context', '')[:200]}"
+                    ))
+                    conn.commit()
+                    saved += 1
+            except Exception as e:
+                logger.debug(f"Failed to save contact {contact['email']}: {e}")
+        
+        if saved > 0:
+            logger.info(f"Extracted {saved} contacts for company {company_id}")
 
     def append_job_csv(self, job, csv_path=None, fields=None):
         """Append job to CSV file."""

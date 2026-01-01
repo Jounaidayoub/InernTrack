@@ -22,6 +22,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 
 /* Buttons */
 .btn-accent {
+
 	background-color: var(--accent);
 	color: white;
 	transition: background-color .15s ease;
@@ -43,8 +44,26 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 
 /* Focus ring helper */
 .focus-accent:focus {
+
 	outline: none;
 	box-shadow: 0 0 0 3px rgba(53,94,59,0.12);
 	border-color: var(--accent-dark);
 }
 
+/* Shimmer animation for progress bars */
+@keyframes shimmer {
+	0% { transform: translateX(-100%); }
+	100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+	animation: shimmer 1.5s infinite;
+}
+
+/* Pulse animation for loading indicators */
+@keyframes pulse-soft {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.6; }
+}
+.animate-pulse-soft {
+	animation: pulse-soft 2s ease-in-out infinite;
+}

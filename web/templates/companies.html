@@ -2,15 +2,29 @@
 {% block title %}Companies - InternTrack{% endblock %}
 {% block content %}
 <div class="mb-6">
-  <h2 class="text-xl font-semibold">Companies</h2>
-  <p class="text-sm text-gray-500">Browse company profiles</p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-semibold">Companies</h2>
+      <p class="text-sm text-gray-500">Browse company profiles</p>
+    </div>
+    <!-- Batch Enrich Button -->
+    <div class="flex items-center gap-3">
+      <div id="unenrichedCount" class="text-sm text-gray-500"></div>
+      <button id="batchEnrichBtn" 
+              onclick="handleEnrichClick()"
+              class="btn-accent-dark px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition min-w-[140px] justify-center">
+        <i id="batchEnrichIcon" class="fas fa-magic"></i>
+        <span id="batchEnrichText">Enrich All</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="bg-white shadow rounded overflow-hidden p-4">
   <div class="flex items-center justify-between mb-4">
     <input id="companySearch" placeholder="Search companies or industry" class="border rounded px-3 py-2 w-80" />
     <div>
-      <button id="exportCompanies" class="bg-indigo-600 text-white px-3 py-2 rounded">Export CSV</button>
+      <button id="exportCompanies" class=" btn-accent px-3 py-2 rounded">Export CSV</button>
     </div>
   </div>
   <div id="companyList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -21,9 +35,326 @@
 <div id="companyModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
   <div id="companyModalContent" class="bg-white rounded shadow max-w-3xl w-full p-6"></div>
 </div>
+
+<!-- Batch Enrich Modal -->
+<div id="batchEnrichModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+    <!-- Header -->
+    <div class="header-gradient p-4 border-b rounded-t-lg">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <i class="fas fa-magic text-forest"></i> Batch Enrich Companies
+        </h3>
+        <button onclick="hideBatchEnrichModal()" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Content -->
+    <div class="p-6">
+      <!-- Unenriched companies info -->
+      <div id="batchEnrichInfo" class="mb-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p class="text-sm text-blue-800">
+            <i class="fas fa-info-circle mr-2"></i>
+            <span id="unenrichedInfoText">Loading unenriched companies...</span>
+          </p>
+        </div>
+      </div>
+      
+      <!-- Limit selector -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Number of companies to enrich:
+        </label>
+        <select id="enrichLimit" class="w-full border rounded-lg px-3 py-2">
+          <option value="5">5 companies</option>
+          <option value="10" selected>10 companies</option>
+          <option value="25">25 companies</option>
+          <option value="50">50 companies</option>
+          <option value="100">100 companies (slow)</option>
+        </select>
+      </div>
+      
+      <!-- Progress section (hidden initially) -->
+      <div id="enrichProgress" class="hidden">
+        <!-- Current company being enriched -->
+        <div id="currentEnrichment" class="mb-4 bg-forest/10 border border-forest/30 rounded-lg p-4">
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <div class="w-10 h-10 rounded-full bg-forest/20 flex items-center justify-center">
+                <i class="fas fa-building text-forest"></i>
+              </div>
+              <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                <i class="fas fa-spinner fa-spin text-forest text-xs"></i>
+              </div>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Currently enriching:</p>
+              <p id="currentCompanyName" class="font-medium text-forest">Loading...</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-2 flex items-center justify-between text-sm">
+          <span class="text-gray-600">Progress:</span>
+          <span id="enrichProgressText" class="font-medium">0 / 0</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div id="enrichProgressBar" class="bg-forest h-3 rounded-full transition-all duration-300 relative" style="width: 0%">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+          </div>
+        </div>
+        <div id="enrichLog" class="mt-3 max-h-40 overflow-y-schroll text-xs font-mono bg-gray-50 rounded p-2 space-y-1"></div>
+      </div>
+      
+      <!-- Results section (hidden initially) -->
+      <div id="enrichResults" class="hidden">
+        <div class="grid grid-cols-2 gap-4 text-center">
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div id="enrichedCount" class="text-2xl font-bold text-green-600">0</div>
+            <div class="text-sm text-green-800">Enriched</div>
+          </div>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div id="failedCount" class="text-2xl font-bold text-red-600">0</div>
+            <div class="text-sm text-red-800">Failed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="p-4 border-t bg-gray-50 rounded-b-lg flex justify-end gap-3">
+      <button onclick="hideBatchEnrichModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+        Cancel
+      </button>
+      <button id="startEnrichBtn" onclick="startBatchEnrich()" class="btn-accent px-4 py-2 rounded-lg flex items-center gap-2">
+        <i class="fas fa-rocket"></i> Start Enrichment
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>
 window.PAGE_TYPE = 'companies';
+
+// Unenriched companies data
+let unenrichedCompanies = [];
+
+// Enrichment state
+let isEnriching = false;
+
+// Load unenriched count on page load
+document.addEventListener('DOMContentLoaded', loadUnenrichedCount);
+
+// Handle enrich button click
+function handleEnrichClick() {
+  if (isEnriching) {
+    // If already enriching, just show the modal with progress
+    const modal = document.getElementById('batchEnrichModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    return;
+  }
+  showBatchEnrichModal();
+}
+
+// Update main button to show progress
+function updateMainButton(state, progress = null) {
+  const btn = document.getElementById('batchEnrichBtn');
+  const icon = document.getElementById('batchEnrichIcon');
+  const text = document.getElementById('batchEnrichText');
+  
+  switch(state) {
+    case 'idle':
+      icon.className = 'fas fa-magic';
+      text.textContent = 'Enrich All';
+      btn.classList.remove('opacity-75');
+      break;
+    case 'enriching':
+      icon.className = 'fas fa-spinner fa-spin';
+      text.textContent = progress ? `${progress.current}/${progress.total}` : 'Enriching...';
+      btn.classList.add('opacity-75');
+      break;
+    case 'done':
+      icon.className = 'fas fa-check';
+      text.textContent = 'Done!';
+      btn.classList.remove('opacity-75');
+      // Reset after 2 seconds
+      setTimeout(() => updateMainButton('idle'), 2000);
+      break;
+  }
+}
+
+async function loadUnenrichedCount() {
+  try {
+    const res = await fetch('/api/companies/unenriched');
+    const data = await res.json();
+    
+    if (data.companies) {
+      unenrichedCompanies = data.companies;
+      const count = data.total || 0;
+      
+      const countEl = document.getElementById('unenrichedCount');
+      if (countEl) {
+        if (count > 0) {
+          countEl.innerHTML = `<span class="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">${count} need enrichment</span>`;
+        } else {
+          countEl.innerHTML = `<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">All enriched ✓</span>`;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load unenriched count:', err);
+  }
+}
+
+function showBatchEnrichModal() {
+  const modal = document.getElementById('batchEnrichModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  
+  // Reset state
+  document.getElementById('enrichProgress').classList.add('hidden');
+  document.getElementById('enrichResults').classList.add('hidden');
+  document.getElementById('currentEnrichment').classList.remove('hidden');
+  document.getElementById('currentCompanyName').textContent = 'Waiting to start...';
+  document.getElementById('startEnrichBtn').disabled = false;
+  document.getElementById('startEnrichBtn').innerHTML = '<i class="fas fa-rocket"></i> Start Enrichment';
+  document.getElementById('enrichLimit').disabled = false;
+  document.getElementById('enrichLog').innerHTML = '';
+  document.getElementById('enrichProgressBar').style.width = '0%';
+  
+  // Update info text
+  const infoText = document.getElementById('unenrichedInfoText');
+  if (unenrichedCompanies.length > 0) {
+    const missingDesc = unenrichedCompanies.filter(c => !c.has_description).length;
+    const missingLinkedIn = unenrichedCompanies.filter(c => !c.has_linkedin).length;
+    const missingContacts = unenrichedCompanies.filter(c => c.contact_count === 0).length;
+    
+    infoText.innerHTML = `
+      <strong>${unenrichedCompanies.length}</strong> companies need enrichment:<br>
+      • ${missingDesc} missing description<br>
+      • ${missingLinkedIn} missing LinkedIn<br>
+      • ${missingContacts} missing contacts
+    `;
+  } else {
+    infoText.textContent = 'All companies are fully enriched!';
+    document.getElementById('startEnrichBtn').disabled = true;
+  }
+}
+
+function hideBatchEnrichModal() {
+  const modal = document.getElementById('batchEnrichModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+async function startBatchEnrich() {
+  // Prevent multiple runs
+  if (isEnriching) return;
+  isEnriching = true;
+  
+  const limit = parseInt(document.getElementById('enrichLimit').value);
+  const btn = document.getElementById('startEnrichBtn');
+  const progressSection = document.getElementById('enrichProgress');
+  const resultsSection = document.getElementById('enrichResults');
+  const progressBar = document.getElementById('enrichProgressBar');
+  const progressText = document.getElementById('enrichProgressText');
+  const logEl = document.getElementById('enrichLog');
+  const currentCompanyEl = document.getElementById('currentCompanyName');
+  const currentEnrichmentEl = document.getElementById('currentEnrichment');
+  
+  // Disable controls
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enriching...';
+  document.getElementById('enrichLimit').disabled = true;
+  
+  // Update main button
+  const toEnrich = unenrichedCompanies.slice(0, limit);
+  updateMainButton('enriching', { current: 0, total: toEnrich.length });
+  
+  // Show progress
+  progressSection.classList.remove('hidden');
+  logEl.innerHTML = '';
+  
+  let enriched = 0;
+  let failed = 0;
+  
+  progressText.textContent = `0 / ${toEnrich.length}`;
+  
+  // Enrich one by one for real-time feedback
+  for (let i = 0; i < toEnrich.length; i++) {
+    const company = toEnrich[i];
+    
+    // Update current company being enriched
+    currentCompanyEl.textContent = company.name;
+    logEl.innerHTML += `<div class="text-gray-500 flex items-center gap-2"><i class="fas fa-spinner fa-spin text-xs"></i> ${company.name}...</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+    
+    try {
+      const res = await fetch(`/api/company/${company.id}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      
+      // Remove the "in progress" line and add result
+      logEl.lastElementChild?.remove();
+      
+      if (data.success) {
+        enriched++;
+        const fieldsUpdated = data.enriched_data?.fields_updated?.length || 0;
+        logEl.innerHTML += `<div class="text-green-600">✓ ${company.name} <span class="text-gray-400">(${fieldsUpdated} fields updated)</span></div>`;
+      } else {
+        failed++;
+        logEl.innerHTML += `<div class="text-red-600">✗ ${company.name}: ${data.error || 'Failed'}</div>`;
+      }
+    } catch (err) {
+      logEl.lastElementChild?.remove();
+      failed++;
+      logEl.innerHTML += `<div class="text-red-600">✗ ${company.name}: ${err.message}</div>`;
+    }
+    
+    // Update progress
+    const progress = ((i + 1) / toEnrich.length) * 100;
+    progressBar.style.width = `${progress}%`;
+    progressText.textContent = `${i + 1} / ${toEnrich.length}`;
+    
+    // Update main button with progress
+    updateMainButton('enriching', { current: i + 1, total: toEnrich.length });
+    
+    // Auto-scroll log
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  
+  // Mark enrichment as complete
+  isEnriching = false;
+  
+  // Hide current enrichment indicator
+  currentEnrichmentEl.classList.add('hidden');
+  
+  // Show results
+  resultsSection.classList.remove('hidden');
+  document.getElementById('enrichedCount').textContent = enriched;
+  document.getElementById('failedCount').textContent = failed;
+  
+  btn.innerHTML = '<i class="fas fa-check"></i> Done';
+  
+  // Update main button to done state
+  updateMainButton('done');
+  
+  // Reload unenriched count
+  await loadUnenrichedCount();
+}
+
+// Close modal on backdrop click
+document.getElementById('batchEnrichModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) hideBatchEnrichModal();
+});
 </script>
 {% endblock %}
