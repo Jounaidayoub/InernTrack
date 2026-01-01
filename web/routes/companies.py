@@ -26,6 +26,17 @@ class CompaniesController(BaseController):
             self.enrich_company, 
             methods=['POST']
         )
+        self.bp.add_url_rule(
+            '/api/companies/unenriched',
+            'api_unenriched_companies',
+            self.get_unenriched_companies
+        )
+        self.bp.add_url_rule(
+            '/api/companies/enrich-batch',
+            'api_batch_enrich',
+            self.batch_enrich,
+            methods=['POST']
+        )
     
     def list_companies(self):
         """List companies with filters and pagination."""
@@ -70,6 +81,38 @@ class CompaniesController(BaseController):
                 'success': True,
                 'company_id': result.data['company_id'],
                 'enriched_data': result.data['enriched_data']
+            })
+        else:
+            return self.error_response(result.error, result.status_code)
+    
+    def get_unenriched_companies(self):
+        """Get list of companies that haven't been fully enriched."""
+        service = CompanyService()
+        result = service.get_unenriched_companies()
+        return self.service_to_response(result)
+    
+    def batch_enrich(self):
+        """
+        Batch enrich multiple companies.
+        
+        Request body (optional):
+        - company_ids: list of specific company IDs to enrich
+        - limit: max number to enrich (default 10)
+        """
+        company_ids = None
+        limit = 10
+        
+        if request.is_json and request.json:
+            company_ids = request.json.get('company_ids')
+            limit = request.json.get('limit', 10)
+        
+        service = CompanyService()
+        result = service.batch_enrich_companies(company_ids, limit)
+        
+        if result.success:
+            return jsonify({
+                'success': True,
+                **result.data
             })
         else:
             return self.error_response(result.error, result.status_code)
