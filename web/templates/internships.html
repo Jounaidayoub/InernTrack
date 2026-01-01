@@ -133,13 +133,21 @@
 <div id="pagination" class="mt-4"></div>
 
 <!-- modal placeholder -->
-<div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
-  <div id="modalContent" class="bg-white rounded shadow max-w-3xl w-full p-6"></div>
+<div
+  id="modal"
+  class="fixed inset-0 bg-black/40 hidden flex items-center justify-center overflow-y-auto"
+>
+  <div
+    id="modalContent"
+    class="bg-white rounded shadow max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 prose"
+  ></div>
 </div>
+
+
 
 {% endblock %}
 {% block scripts %}
-<script>
+<script>  
 window.PAGE_TYPE = 'internships';
 </script>
 {% endblock %}

@@ -99,6 +99,9 @@ async function loadPage(){
       const id = e.currentTarget.dataset.id;
       const res = await fetch(`/api/internship/${id}`);
       const json = await res.json();
+       
+    
+      
       showModal(json);
     }));
   }catch(err){
@@ -107,14 +110,37 @@ async function loadPage(){
   }
 }
 
-function showModal(data){
+// TODO:  render mark down - enchance
+function showModal(data) {
   const modal = $('#modal');
   const content = $('#modalContent');
-  content.innerHTML = `<h3 class="text-xl font-semibold mb-2">${escapeHtml(data.title)}</h3><p class="text-sm text-gray-500">${escapeHtml(data.company||'')}</p><div class="mt-4 prose">${escapeHtml(data.description||'')}</div>`;
+
+  // 1. Parse markdown safely
+  const rawMarkdown = data.description || '';
+  const parsedHtml = marked.parse(rawMarkdown);
+  const safeHtml = DOMPurify.sanitize(parsedHtml);
+
+  // 2. Inject content
+  content.innerHTML = `
+        <span class="text-red">${escapeHtml(data.title)}</span>
+        ${escapeHtml(data.company || '')}
+    
+
+    <div class="prose max-w-none">
+      ${safeHtml}
+    </div>
+  `;
+
+  // 3. Show modal
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
-  modal.addEventListener('click', (e)=>{ if(e.target===modal) modalClose(); });
+
+  // 4. Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modalClose();
+  });
 }
+
 
 function modalClose(){
   const modal = $('#modal');
