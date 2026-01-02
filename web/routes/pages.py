@@ -21,6 +21,7 @@ class PagesController(BaseController):
         self.bp.add_url_rule('/', 'index', self.index)
         self.bp.add_url_rule('/internships', 'internships_page', self.internships_page)
         self.bp.add_url_rule('/companies', 'companies_page', self.companies_page)
+        self.bp.add_url_rule('/scrape', 'scrape_page', self.scrape_page)
         self.bp.add_url_rule('/internship/<int:intern_id>', 'internship_detail_page', self.internship_detail_page)
         self.bp.add_url_rule('/company/<int:company_id>', 'company_detail_page', self.company_detail_page)
         self.bp.add_url_rule('/db', 'db_status_page', self.db_status_page)
@@ -36,6 +37,10 @@ class PagesController(BaseController):
     def companies_page(self):
         """Companies listing page."""
         return render_template('companies.html')
+    
+    def scrape_page(self):
+        """Dedicated scraping page."""
+        return render_template('scrape.html')
     
     def internship_detail_page(self, intern_id: int):
         """Internship detail page."""

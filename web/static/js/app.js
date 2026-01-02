@@ -1,6 +1,8 @@
 // Minimal JS for fetching and rendering internships/companies via the JSON API
 // Uses fetch API and updates DOM. Keep small and dependency-free.
 
+const STORAGE_KEY = 'interntrack_filters';
+
 const state = {
   page: 1,
   per_page: 25,
@@ -28,6 +30,117 @@ function $(s){return document.querySelector(s)}
 function $$(s){return document.querySelectorAll(s)}
 
 // =============================================================================
+// LOCAL STORAGE PERSISTENCE
+// =============================================================================
+
+function saveFiltersToStorage() {
+  const filtersToSave = {
+    user_statuses: state.user_statuses,
+    company_ids: state.company_ids,
+    locations: state.locations,
+    is_remote: state.is_remote,
+    status: state.status,
+    site: state.site,
+    sort_by: state.sort_by,
+    sort_order: state.sort_order,
+    q: state.q
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtersToSave));
+  } catch (e) {
+    console.warn('Failed to save filters to localStorage:', e);
+  }
+}
+
+function loadFiltersFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const filters = JSON.parse(saved);
+      // Restore state
+      state.user_statuses = filters.user_statuses || [];
+      state.company_ids = filters.company_ids || [];
+      state.locations = filters.locations || [];
+      state.is_remote = filters.is_remote;
+      state.status = filters.status || null;
+      state.site = filters.site || null;
+      state.sort_by = filters.sort_by || 'date_scraped';
+      state.sort_order = filters.sort_order || 'desc';
+      state.q = filters.q || null;
+      return true;
+    }
+  } catch (e) {
+    console.warn('Failed to load filters from localStorage:', e);
+  }
+  return false;
+}
+
+function applyFiltersToUI() {
+  // Apply search
+  const searchInput = $('#search');
+  if (searchInput && state.q) {
+    searchInput.value = state.q;
+  }
+  
+  // Apply select filters
+  if ($('#remoteFilter')) {
+    $('#remoteFilter').value = state.is_remote === null ? '' : (state.is_remote ? '1' : '0');
+  }
+  if ($('#statusFilter')) {
+    $('#statusFilter').value = state.status || '';
+  }
+  if ($('#siteFilter')) {
+    $('#siteFilter').value = state.site || '';
+  }
+  if ($('#sortBy')) {
+    $('#sortBy').value = state.sort_by || 'date_scraped';
+  }
+  if ($('#sortOrder')) {
+    $('#sortOrder').value = state.sort_order || 'desc';
+  }
+  
+  // Update multi-select labels
+  updateMultiSelectLabel('userStatusLabel', state.user_statuses, 'All statuses');
+  updateMultiSelectLabel('companyLabel', 
+    state.company_ids.map(id => {
+      const c = state.filterOptions?.companies?.find(c => c.id === id);
+      return c ? c.name : id;
+    }), 
+    'All companies'
+  );
+  updateMultiSelectLabel('locationLabel', state.locations, 'All locations');
+  
+  // Update filter count badge
+  updateFilterCount();
+  
+  // Show filters panel if any filters are active
+  const filterCount = getActiveFilterCount();
+  if (filterCount > 0 || state.q) {
+    const filtersPanel = $('#filtersPanel');
+    if (filtersPanel) {
+      filtersPanel.classList.remove('hidden');
+    }
+  }
+}
+
+function applyCheckboxesFromState() {
+  // Apply user status checkboxes
+  $$('.userStatusCheck').forEach(c => {
+    c.checked = state.user_statuses.includes(c.value);
+  });
+  
+  // Apply company checkboxes
+  $$('.companyCheck').forEach(c => {
+    c.checked = state.company_ids.includes(parseInt(c.value));
+  });
+  
+  // Apply location checkboxes
+  $$('.locationCheck').forEach(c => {
+    c.checked = state.locations.includes(c.value);
+  });
+}
+
+// =============================================================================
 // FILTER OPTIONS & MULTI-SELECT
 // =============================================================================
 
@@ -36,6 +149,10 @@ async function loadFilterOptions() {
     const res = await fetch('/api/internships/filters');
     state.filterOptions = await res.json();
     renderFilterDropdowns();
+    // After rendering dropdowns, apply saved checkbox states
+    applyCheckboxesFromState();
+    // Update labels with company names now that we have filterOptions
+    applyFiltersToUI();
   } catch (err) {
     console.error('Failed to load filter options:', err);
   }
@@ -387,10 +504,10 @@ function renderRows(items) {
       <td class="p-3">
         <div class="flex gap-1">
           <button
-            class="openBtn btn-accent text-white px-2 py-1 rounded text-xs"
+            class="showModal btn-accent text-white px-2 py-1 rounded text-xs"
             data-id="${it.id}"
             onclick="event.stopPropagation()"
-            title="View Description"
+    
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -426,6 +543,9 @@ function renderRows(items) {
   
   // Setup status dropdowns after render
   setupStatusDropdowns();
+  
+  // Setup modal buttons after render
+  setupModalButtons();
 }
 
 function setupStatusDropdowns() {
@@ -462,6 +582,31 @@ function setupStatusDropdowns() {
       if (success) {
         // Reload to show updated status
         loadPage();
+      }
+    });
+  });
+}
+
+function setupModalButtons() {
+  // Handle modal button clicks
+  $$('.showModal').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const internshipId = btn.dataset.id;
+      
+      try {
+        // Fetch internship details
+        const response = await fetch(`/api/internship/${internshipId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch internship details');
+        }
+        const internship = await response.json();
+        
+        // Show modal with data
+        showModal(internship);
+      } catch (error) {
+        console.error('Error fetching internship:', error);
+        alert('Failed to load internship details');
       }
     });
   });
@@ -521,15 +666,42 @@ function escapeHtml(s){
   return String(s).replace(/[&<>\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]);
 }
 
+function updateRowCounter(currentItems, total) {
+  const resultsInfo = $('#resultsInfo');
+  const rowCount = $('#rowCount');
+  const totalInfo = $('#totalInfo');
+  const totalCount = $('#totalCount');
+  
+  if (resultsInfo && rowCount) {
+    rowCount.textContent = currentItems;
+    
+    if (total && total > currentItems) {
+      totalCount.textContent = total;
+      totalInfo.classList.remove('hidden');
+    } else {
+      totalInfo.classList.add('hidden');
+    }
+    
+    resultsInfo.classList.remove('hidden');
+  }
+}
+
 async function loadPage(){
   const list = $('#list');
   $('#loading').style.display = 'block';
   $('#table').classList.add('hidden');
+  $('#resultsInfo').classList.add('hidden');
+  
   try{
     const data = await fetchInternships();
-    renderRows(data.items || []);
+    const items = data.items || [];
+    
+    renderRows(items);
+    updateRowCounter(items.length, data.total || 0);
+    
     $('#loading').style.display = 'none';
     $('#table').classList.remove('hidden');
+    
     // render pagination
     renderPagination('#pagination', state.page, state.per_page, data.total || 0, (p)=>{ state.page = p; loadPage(); });
   }catch(err){
@@ -550,10 +722,10 @@ function showModal(data) {
 
   // 2. Inject content
   content.innerHTML = `
-        <span class="text-red">${escapeHtml(data.title)}</span>
-        ${escapeHtml(data.company || '')}
-    
-
+    <div class="mb-4">
+      <h2 class="text-xl font-bold text-gray-900">${escapeHtml(data.title || 'Job Description')}</h2>
+      <p class="text-gray-600">${escapeHtml(data.company || '')}</p>
+    </div>
     <div class="prose max-w-none">
       ${safeHtml}
     </div>
@@ -617,11 +789,49 @@ function showCompanyModal(data){
 }
 function companyModalClose(){ const m = $('#companyModal'); m.classList.add('hidden'); m.style.display='none'; }
 
+// =============================================================================
+// NAVIGATION ACTIVE STATE
+// =============================================================================
+
+function setActiveNavLink() {
+  const path = window.location.pathname;
+  const navLinks = document.querySelectorAll('.nav-link');
+  
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    const navType = link.getAttribute('data-nav');
+    
+    // Match current page with nav link
+    if (navType === 'home' && path === '/') {
+      link.classList.add('active');
+    } else if (navType === 'internships' && path.startsWith('/internship')) {
+      link.classList.add('active');
+    } else if (navType === 'companies' && path.startsWith('/compan')) {
+      link.classList.add('active');
+    } else if (navType === 'scrape' && path.startsWith('/scrape')) {
+      link.classList.add('active');
+    } else if (navType === 'db' && path.startsWith('/db')) {
+      link.classList.add('active');
+    } else if (navType === 'settings' && path.startsWith('/settings')) {
+      link.classList.add('active');
+    }
+  });
+}
+
 // Initialize per page
 document.addEventListener('DOMContentLoaded', ()=>
   {
+  // Set active navigation link
+  setActiveNavLink();
+  
   if(window.PAGE_TYPE === 'internships'){
-    // Load filter options first
+    // Load saved filters from localStorage
+    loadFiltersFromStorage();
+    
+    // Apply saved filters to UI elements (selects)
+    applyFiltersToUI();
+    
+    // Load filter options first (will also apply checkboxes and update labels)
     loadFilterOptions();
     
     // Setup multi-select dropdowns
@@ -650,6 +860,7 @@ document.addEventListener('DOMContentLoaded', ()=>
       searchTimeout = setTimeout(() => {
         state.q = e.target.value;
         state.page = 1;
+        saveFiltersToStorage();
         loadPage();
       }, 300);
     });
@@ -681,6 +892,10 @@ document.addEventListener('DOMContentLoaded', ()=>
       
       updateFilterCount();
       state.page = 1;
+      
+      // Save filters to localStorage
+      saveFiltersToStorage();
+      
       loadPage();
     });
     
@@ -713,6 +928,10 @@ document.addEventListener('DOMContentLoaded', ()=>
       updateMultiSelectLabel('locationLabel', [], 'All locations');
       
       updateFilterCount();
+      
+      // Clear localStorage
+      saveFiltersToStorage();
+      
       loadPage();
     });
     

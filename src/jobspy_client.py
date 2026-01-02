@@ -108,6 +108,15 @@ class JobScraperClient:
         # Calculate total combinations
         total_combinations = self.settings.get_search_combinations_count()
         
+        # Log detailed configuration
+        self.logger.info("=" * 70)
+        self.logger.info("SCRAPING CONFIGURATION")
+        self.logger.info("=" * 70)
+        self.logger.info(f"Search terms: {self.settings.SEARCH_TERMS}")
+        self.logger.info(f"Locations: {self.settings.LOCATIONS}")
+        self.logger.info(f"Base config: {self.base_config}")
+        self.logger.info("=" * 70)
+        
         self.logger.info(
             f"Starting enhanced job scraping: {len(self.settings.SEARCH_TERMS)} terms x "
             f"{len(self.settings.LOCATIONS)} locations = {total_combinations} searches"
@@ -133,6 +142,14 @@ class JobScraperClient:
                 )
                 
                 try:
+                    # Log the exact configuration being used
+                    scrape_config = {
+                        **self.base_config,
+                        'search_term': search_term,
+                        'location': location
+                    }
+                    self.logger.debug(f"Scrape config: {scrape_config}")
+                    
                     # Perform the scrape
                     jobs_df = scrape_jobs(
                         **self.base_config,
@@ -152,13 +169,27 @@ class JobScraperClient:
                         
                     else:
                         self.logger.warning(f"WARNING: No jobs found for '{search_term}' in '{location}'")
+                        # Log more details about the empty result
+                        self.logger.debug(f"Jobs DataFrame for '{search_term}' in '{location}': {jobs_df}")
                         failed_scrapes += 1
                         
                 except Exception as e:
+                    error_details = {
+                        'search_term': search_term,
+                        'location': location,
+                        'config': self.base_config,
+                        'error_type': type(e).__name__,
+                        'error_message': str(e)
+                    }
+                    
                     self.logger.error(
-                        f"ERROR: Failed scraping '{search_term}' in '{location}': {str(e)}",
-                        exc_info=True
+                        f"ERROR: Failed scraping '{search_term}' in '{location}': {str(e)}"
                     )
+                    self.logger.error(f"Error details: {error_details}")
+                    
+                    # Log the full traceback in debug mode
+                    self.logger.debug("Full traceback:", exc_info=True)
+                    
                     failed_scrapes += 1
                     continue
         
@@ -175,6 +206,22 @@ class JobScraperClient:
         if not all_jobs:
             error_msg = "No jobs found in any search. Check your configuration and network connection."
             self.logger.error(error_msg)
+            
+            # Add detailed debugging for zero results
+            self.logger.error("DEBUGGING INFORMATION:")
+            self.logger.error(f"Search terms used: {self.settings.SEARCH_TERMS}")
+            self.logger.error(f"Locations used: {self.settings.LOCATIONS}")
+            self.logger.error(f"Sites used: {self.settings.SITE_NAMES}")
+            self.logger.error(f"Base config: {self.base_config}")
+            
+            # Suggest troubleshooting steps
+            self.logger.error("TROUBLESHOOTING SUGGESTIONS:")
+            self.logger.error("1. Check your internet connection")
+            self.logger.error("2. Try simpler search terms (e.g., 'Software Intern')")
+            self.logger.error("3. Try different locations (e.g., 'United States', 'Remote')")
+            self.logger.error("4. Try different job sites (linkedin, indeed)")
+            self.logger.error("5. Increase RESULTS_WANTED or remove HOURS_OLD filter")
+            self.logger.error("6. Check if the job sites are accessible from your location")
             
             if failed_scrapes == total_combinations:
                 raise JobScrapingError(error_msg)
@@ -363,3 +410,69 @@ def fetch_jobs() -> List[Dict[str, Any]]:
     """
     client = JobScraperClient()
     return client.fetch_jobs()
+
+
+def test_simple_scrape():
+    """
+    Test function to debug scraping issues with a simple configuration.
+    
+    This function can be called directly for debugging purposes.
+    It uses a minimal configuration to test if the basic scraping works.
+    """
+    import logging
+    
+    # Set up logger for testing
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger("test_scraper")
+    
+    logger.info("Testing simple scrape configuration...")
+    
+    # Test with a very simple configuration
+    test_configs = [
+        {
+            "site_name": ["indeed"],
+            "search_term": "intern",
+            "location": "United States",
+            "results_wanted": 5,
+            "job_type": "internship",
+            "verbose": 2
+        },
+        {
+            "site_name": ["linkedin"],
+            "search_term": "software intern",
+            "location": "Remote",
+            "results_wanted": 5,
+            "job_type": "internship",
+            "verbose": 2
+        }
+    ]
+    
+    for i, config in enumerate(test_configs):
+        logger.info(f"Testing configuration {i+1}: {config}")
+        
+        try:
+            jobs_df = scrape_jobs(**config)
+            
+            if jobs_df is not None and not jobs_df.empty:
+                logger.info(f"SUCCESS: Found {len(jobs_df)} jobs with config {i+1}")
+                logger.info(f"Columns: {list(jobs_df.columns)}")
+                return True
+            else:
+                logger.warning(f"No jobs found with config {i+1}")
+                
+        except Exception as e:
+            logger.error(f"Error with config {i+1}: {e}", exc_info=True)
+    
+    logger.error("All test configurations failed")
+    return False
+
+
+if __name__ == "__main__":
+    # Run test when script is executed directly
+    print("Running JobSpy scraper test...")
+    success = test_simple_scrape()
+    
+    if success:
+        print("Basic scraping test passed!")
+    else:
+        print("Basic scraping test failed - check configuration and network.")

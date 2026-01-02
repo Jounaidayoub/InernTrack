@@ -198,6 +198,12 @@
 
     <!-- Table Section -->
     <div id="list" class="overflow-x-auto">
+      <!-- Results counter -->
+      <div id="resultsInfo" class="px-4 py-2 bg-gray-50 border-b text-sm text-gray-600 hidden">
+        Showing <span id="rowCount">0</span> internships
+        <span id="totalInfo" class="hidden"> of <span id="totalCount">0</span> total</span>
+      </div>
+      
       <div id="loading" class="text-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-forest mx-auto mb-2"></div>
         <span class="text-gray-500">Loading internships...</span>

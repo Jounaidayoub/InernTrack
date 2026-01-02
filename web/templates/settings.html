@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Internship Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-3xl font-bold mb-2">
+        <i class="fas fa-cog mr-2" style="color: var(--forest)"></i>
+        Scraping Settings
+    </h1>
+    <p class="text-gray-600">Configure job scraping parameters and run the scraper</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Settings Form -->
+    <div class="lg:col-span-3">
+        <form id="settingsForm" class="space-y-6">
+            <!-- Search Configuration -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-search mr-2" style="color: var(--sage)"></i>
+                    Search Configuration
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Search Terms -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="search_terms">
+                            Search Terms
+                            <span class="text-gray-400 font-normal">(comma-separated)</span>
+                        </label>
+                        <textarea 
+                            id="search_terms" 
+                            name="search_terms" 
+                            rows="3"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                            placeholder="software engineer intern, data science intern, web developer intern"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Job titles or keywords to search for</p>
+                    </div>
+                    
+                    <!-- Locations -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="locations">
+                            Locations
+                            <span class="text-gray-400 font-normal">(comma-separated)</span>
+                        </label>
+                        <textarea 
+                            id="locations" 
+                            name="locations" 
+                            rows="2"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                            placeholder="San Francisco, CA, New York, NY, Remote"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Locations to search in</p>
+                    </div>
+                    
+                    <!-- Job Sites -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Job Sites
+                        </label>
+                        <div class="flex flex-wrap gap-3" id="site_names_container">
+                            <!-- Checkboxes will be populated by JS -->
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Select job boards to scrape from</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Filters -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-filter mr-2" style="color: var(--forest)"></i>
+                    Job Filters
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Job Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="job_type">
+                            Job Type
+                        </label>
+                        <select 
+                            id="job_type" 
+                            name="job_type"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        >
+                            <option value="">Any</option>
+                            <option value="internship">Internship</option>
+                            <option value="fulltime">Full Time</option>
+                            <option value="parttime">Part Time</option>
+                            <option value="contract">Contract</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Remote -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="is_remote">
+                            Remote
+                        </label>
+                        <select 
+                            id="is_remote" 
+                            name="is_remote"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        >
+                            <option value="">Any</option>
+                            <option value="true">Remote Only</option>
+                            <option value="false">On-site Only</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Country (Indeed) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="country_indeed">
+                            Country (Indeed)
+                        </label>
+                        <select 
+                            id="country_indeed" 
+                            name="country_indeed"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        
+                            >
+                            <option value="Morocco" >Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                            <option value="Morocco">Morocco</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Experience Levels -->
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Experience Levels
+                        </label>
+                        <div class="flex flex-wrap gap-3" id="experience_levels_container">
+                            <!-- Checkboxes will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scraping Options -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-sliders-h mr-2" style="color: var(--sage)"></i>
+                    Scraping Options
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Results Wanted -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="results_wanted">
+                            Results Per Search
+                        </label>
+                        <input 
+                            type="number" 
+                            id="results_wanted" 
+                            name="results_wanted"
+                            min="1" 
+                            max="500"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Max results per search term (1-500)</p>
+                    </div>
+                    
+                    <!-- Hours Old -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="hours_old">
+                            Max Job Age (hours)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="hours_old" 
+                            name="hours_old"
+                            min="1" 
+                            max="720"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Only get jobs posted within this time</p>
+                    </div>
+                    
+                    <!-- Description Format -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="description_format">
+                            Description Format
+                        </label>
+                        <select 
+                            id="description_format" 
+                            name="description_format"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                        >
+                            <option value="markdown">Markdown</option>
+                            <option value="html">HTML</option>
+                            <option value="text">Plain Text</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Boolean Options -->
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="linkedin_fetch_description" 
+                                name="linkedin_fetch_description"
+                                class="w-5 h-5 border-gray-300 rounded accent-[#355E3B]"
+                            />
+                            <span class="text-sm text-gray-700">Fetch LinkedIn descriptions</span>
+                        </label>
+                        
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="easy_apply" 
+                                name="easy_apply"
+                                class="w-5 h-5 border-gray-300 rounded accent-[#355E3B]"
+                            />
+                            <span class="text-sm text-gray-700">Easy Apply only (LinkedIn)</span>
+                        </label>
+                        
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="dry_run" 
+                                name="dry_run"
+                                class="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                            />
+                            <span class="text-sm text-gray-700">Dry Run (no database writes)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center cursor-pointer" onclick="toggleAdvanced()">
+                    <i class="fas fa-cogs text-gray-500 mr-2"></i>
+                    Advanced Options
+                    <i id="advancedToggleIcon" class="fas fa-chevron-down ml-2 text-sm transition-transform"></i>
+                </h2>
+                <div id="advancedOptions" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Proxy -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" for="proxy">
+                                Proxy URL
+                            </label>
+                            <input 
+                                type="text" 
+                                id="proxy" 
+                                name="proxy"
+                                placeholder="http://proxy:port or socks5://proxy:port"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                            />
+                        </div>
+                        
+                        <!-- Verbose -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1" for="verbose">
+                                Log Level
+                            </label>
+                            <select 
+                                id="verbose" 
+                                name="verbose"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus-accent"
+                            >
+                                <option value="0">Normal</option>
+                                <option value="1">Verbose</option>
+                                <option value="2">Debug</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <button 
+                    type="submit" 
+                    class="px-6 py-3 btn-accent-dark rounded-lg transition flex items-center"
+                >
+                    <i class="fas fa-save mr-2"></i>
+                    Save Settings
+                </button>
+                <button 
+                    type="button" 
+                    onclick="resetSettings()"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+                >
+                    <i class="fas fa-undo mr-2"></i>
+                    Reset to Defaults
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Settings Management
+let settings = {};
+let logIndex = 0;
+let pollInterval = null;
+let isRunning = false;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    loadScrapeHistory();
+    checkScrapeStatus();
+});
+
+// Load settings from API
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        settings = data.settings;
+        populateForm(settings);
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showNotification('Failed to load settings', 'error');
+    }
+}
+
+// Populate form with settings values
+function populateForm(settings) {
+    // Multi-select checkboxes for site_names
+    const sitesContainer = document.getElementById('site_names_container');
+    const siteOptions = ['linkedin', 'indeed', 'glassdoor', 'google', 'zip_recruiter'];
+    const selectedSites = settings.site_names?.value || [];
+    
+    sitesContainer.innerHTML = siteOptions.map(site => `
+        <label class="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
+            <input 
+                type="checkbox" 
+                name="site_names" 
+                value="${site}"
+                ${selectedSites.includes(site) ? 'checked' : ''}
+                class="w-4 h-4 border-gray-300 rounded accent-[#355E3B]"
+            />
+            <span class="text-sm capitalize">${site.replace('_', ' ')}</span>
+        </label>
+    `).join('');
+    
+    // Multi-select checkboxes for experience_levels
+    const expContainer = document.getElementById('experience_levels_container');
+    const expOptions = ['internship', 'entry', 'mid', 'senior', 'executive'];
+    const selectedExp = settings.experience_levels?.value || [];
+    
+    expContainer.innerHTML = expOptions.map(level => `
+        <label class="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200">
+            <input 
+                type="checkbox" 
+                name="experience_levels" 
+                value="${level}"
+                ${selectedExp.includes(level) ? 'checked' : ''}
+                class="w-4 h-4 border-gray-300 rounded accent-[#355E3B]"
+            />
+            <span class="text-sm capitalize">${level}</span>
+        </label>
+    `).join('');
+    
+    // Text/Textarea fields
+    ['search_terms', 'locations', 'proxy'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            const value = settings[field].value;
+            el.value = Array.isArray(value) ? value.join(', ') : (value || '');
+        }
+    });
+    
+    // Select fields
+    ['job_type', 'is_remote', 'country_indeed', 'description_format', 'verbose'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.value = settings[field].value || '';
+        }
+    });
+    
+    // Number fields
+    ['results_wanted', 'hours_old'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.value = settings[field].value || '';
+        }
+    });
+    
+    // Boolean fields
+    ['linkedin_fetch_description', 'easy_apply', 'dry_run'].forEach(field => {
+        const el = document.getElementById(field);
+        if (el && settings[field]) {
+            el.checked = settings[field].value === true || settings[field].value === 'true';
+        }
+    });
+}
+
+// Save settings
+document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const settingsData = {};
+    
+    // Handle text/textarea fields that are comma-separated lists
+    ['search_terms', 'locations'].forEach(field => {
+        const value = formData.get(field);
+        if (value) {
+            settingsData[field] = value.split(',').map(s => s.trim()).filter(s => s);
+        }
+    });
+    
+    // Handle multi-select checkboxes
+    settingsData.site_names = formData.getAll('site_names');
+    settingsData.experience_levels = formData.getAll('experience_levels');
+    
+    // Handle simple fields
+    ['job_type', 'is_remote', 'country_indeed', 'description_format', 'proxy'].forEach(field => {
+        const value = formData.get(field);
+        if (value !== null) {
+            settingsData[field] = value;
+        }
+    });
+    
+    // Handle number fields
+    ['results_wanted', 'hours_old', 'verbose'].forEach(field => {
+        const value = formData.get(field);
+        if (value) {
+            settingsData[field] = parseInt(value);
+        }
+    });
+    
+    // Handle boolean fields
+    ['linkedin_fetch_description', 'easy_apply', 'dry_run'].forEach(field => {
+        settingsData[field] = document.getElementById(field)?.checked || false;
+    });
+    
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settingsData)
+        });
+        
+        if (response.ok) {
+            showNotification('Settings saved successfully!', 'success');
+            loadSettings();
+        } else {
+            throw new Error('Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification('Failed to save settings', 'error');
+    }
+});
+
+// Reset settings to defaults
+async function resetSettings() {
+    if (!confirm('Are you sure you want to reset all settings to defaults?')) return;
+    
+    try {
+        const response = await fetch('/api/settings/reset', { method: 'POST' });
+        if (response.ok) {
+            showNotification('Settings reset to defaults', 'success');
+            loadSettings();
+        } else {
+            throw new Error('Failed to reset settings');
+        }
+    } catch (error) {
+        console.error('Error resetting settings:', error);
+        showNotification('Failed to reset settings', 'error');
+    }
+}
+
+// Toggle advanced options
+function toggleAdvanced() {
+    const options = document.getElementById('advancedOptions');
+    const icon = document.getElementById('advancedToggleIcon');
+    options.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+</script>
+{% endblock %}

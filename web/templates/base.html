@@ -12,16 +12,33 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body class="bg-gray-50 text-gray-800 font-sans">
-    <nav class="bg-white shadow-sm">
-      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <a href="/" class="text-2xl font-bold brand hover:underline">InternTrack</a>
-          <a href="/internships" class="text-sm nav-link hover:underline">Internships</a>
-          <a href="/companies" class="text-sm nav-link hover:underline ">Companies</a>
-          <a href="/db" class="text-sm nav-link">DB</a>
-        </div>
-        <div>
-          <input id="globalSearch" placeholder="Search..." class="border rounded px-3 py-2" />
+    <nav class="bg-white shadow-md border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div>
+            <a href="/" class="text-2xl font-bold brand hover:opacity-80 transition-opacity">InternTrack</a>
+          </div>
+        <div class="flex items-center space-x-1">
+        
+          <a href="/internships" class="text-sm nav-link" data-nav="internships">
+            <i class="fas fa-briefcase"></i>
+            <span>Internships</span>
+          </a>
+          <a href="/companies" class="text-sm nav-link" data-nav="companies">
+            <i class="fas fa-building"></i>
+            <span>Companies</span>
+          </a>
+          <a href="/scrape" class="text-sm nav-link" data-nav="scrape">
+            <i class="fas fa-robot"></i>
+            <span>Scraper</span>
+          </a>
+          <a href="/db" class="text-sm nav-link" data-nav="db">
+            <i class="fas fa-database"></i>
+            <span>Database</span>
+          </a>
+          <a href="/settings" class="text-sm nav-link" data-nav="settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </a>
         </div>
       </div>
     </nav>

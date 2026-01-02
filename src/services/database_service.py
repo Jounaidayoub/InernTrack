@@ -65,3 +65,11 @@ class DatabaseService:
         """List recent scrape runs."""
         runs = self.db.list_scrape_runs(limit=limit)
         return ServiceResult(success=True, data={'items': runs})
+    def get_quick_stats(self) -> ServiceResult:
+        """Get quick stats: last run state, total scrapes today, success rate today, total jobs."""
+        try:
+            stats = self.db.get_quick_stats()
+            return ServiceResult(success=True, data=stats)
+        except Exception as e:
+            logger.error(f"Failed to get quick stats: {e}")
+            return ServiceResult(success=False, error=str(e))
