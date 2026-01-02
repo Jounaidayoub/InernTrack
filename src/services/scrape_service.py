@@ -137,7 +137,7 @@ class ScrapeRunner:
         if self.is_running():
             return False
         
-        # Reset state
+        # Reset state   
         self.status = 'running'
         self.progress = {
             'total_found': 0,
@@ -260,7 +260,7 @@ class ScrapeRunner:
             
             if self._stop_requested:
                 self.log('WARNING', '⚠️ Scrape cancelled by user')
-                self._complete('cancelled', 'Cancelled by user')
+                self._complete('cancelled', 'Cancelled by user', db=db)
                 return
             
             self.progress['total_found'] = len(raw_jobs)
@@ -268,10 +268,10 @@ class ScrapeRunner:
             
             if not raw_jobs:
                 self.log('WARNING', 'No jobs found to process')
-                self._complete('completed')
+                self._complete('completed', db=db)
                 return
             
-            # Normalize and filter
+            # Normalize and filter❌
             self.log('INFO', '🔄 Normalizing and filtering...')
             normalized = normalize_jobs(raw_jobs)
             internships = [j for j in normalized if j.get('is_intern')]
@@ -279,7 +279,7 @@ class ScrapeRunner:
             
             if not internships:
                 self.log('WARNING', 'No internships found after filtering')
-                self._complete('completed')
+                self._complete('completed', db=db)
                 return
             
             # Process jobs

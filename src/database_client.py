@@ -520,15 +520,61 @@ class DatabaseClient:
             """, (limit,))
             return [dict(r) for r in cursor.fetchall()]
     
-    def get_quick_stats(self):
-        """Get ."""
+    def get_quick_stats(self) -> Dict[str, Any]:
+        """Get quick stats: last run state, total scrapes today, success rate today, total jobs."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Get last run info
             cursor.execute("""
-                SELECT count(*) as total_jobs FROM scrape_runs
-                        count(*) error_count from scrape_runs where
-            """, )
-            return [dict(r) for r in cursor.fetchall()]
+                SELECT id, status, started_at, completed_at, new_jobs, total_found
+                FROM scrape_runs 
+                ORDER BY started_at DESC 
+                LIMIT 1
+            """)
+            last_run_row = cursor.fetchone()
+            last_run = dict(last_run_row) if last_run_row else None
+            
+            # Get total scrapes today
+            cursor.execute("""
+                SELECT COUNT(*) as count 
+                FROM scrape_runs 
+                WHERE date(started_at) = date('now')
+            """)
+            total_scrapes_today = cursor.fetchone()['count']
+            
+            # Get success rate today (completed vs total)
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+                FROM scrape_runs 
+                WHERE date(started_at) = date('now')
+            """)
+            rate_row = cursor.fetchone()
+            total_today = rate_row['total'] or 0
+            completed_today = rate_row['completed'] or 0
+            success_rate = round((completed_today / total_today) * 100, 1) if total_today > 0 else 0.0
+            
+            # Get total jobs in database
+            cursor.execute("SELECT COUNT(*) as count FROM internships")
+            total_jobs = cursor.fetchone()['count']
+            
+            # Get jobs added today
+            cursor.execute("""
+                SELECT count(*) as count 
+                FROM internships
+                WHERE date(created_at) = date('now')
+            """)
+            jobs_today = cursor.fetchone()['count']
+            
+            return {
+                'last_run': last_run,
+                'total_scrapes_today': total_scrapes_today,
+                'success_rate_today': success_rate,
+                'total_jobs': total_jobs,
+                'jobs_today': jobs_today
+            }
     
 
 
