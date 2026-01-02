@@ -789,9 +789,41 @@ function showCompanyModal(data){
 }
 function companyModalClose(){ const m = $('#companyModal'); m.classList.add('hidden'); m.style.display='none'; }
 
+// =============================================================================
+// NAVIGATION ACTIVE STATE
+// =============================================================================
+
+function setActiveNavLink() {
+  const path = window.location.pathname;
+  const navLinks = document.querySelectorAll('.nav-link');
+  
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    const navType = link.getAttribute('data-nav');
+    
+    // Match current page with nav link
+    if (navType === 'home' && path === '/') {
+      link.classList.add('active');
+    } else if (navType === 'internships' && path.startsWith('/internship')) {
+      link.classList.add('active');
+    } else if (navType === 'companies' && path.startsWith('/compan')) {
+      link.classList.add('active');
+    } else if (navType === 'scrape' && path.startsWith('/scrape')) {
+      link.classList.add('active');
+    } else if (navType === 'db' && path.startsWith('/db')) {
+      link.classList.add('active');
+    } else if (navType === 'settings' && path.startsWith('/settings')) {
+      link.classList.add('active');
+    }
+  });
+}
+
 // Initialize per page
 document.addEventListener('DOMContentLoaded', ()=>
   {
+  // Set active navigation link
+  setActiveNavLink();
+  
   if(window.PAGE_TYPE === 'internships'){
     // Load saved filters from localStorage
     loadFiltersFromStorage();

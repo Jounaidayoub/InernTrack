@@ -14,8 +14,25 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvet
 
 /* Branding */
 .brand { color: var(--forest); font-weight: 700; }
-.nav-link { color: #6b7280; text-decoration: none; }
-.nav-link:hover { color: var(--accent); }
+.nav-link { 
+	color: #6b7280; 
+	text-decoration: none;
+	transition: all 0.2s ease;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.nav-link:hover { 
+	color: var(--accent-dark);
+	background-color: rgba(156,175,136,0.1);
+}
+.nav-link.active {
+	color: var(--accent-dark);
+	background-color: rgba(156,175,136,0.15);
+	font-weight: 600;
+}
 
 /* Header gradient using palette (subtle) */
 .header-gradient { background: linear-gradient(90deg, rgba(152,251,152,0.06), rgba(156,175,136,0.06)); }
