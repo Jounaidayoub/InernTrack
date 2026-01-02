@@ -40,36 +40,21 @@ class DatabaseController(BaseController):
         """Get quick statistics for the scrape page dashboard."""
         try:
             service = DatabaseService()
+            result = service.get_quick_stats()
             
-            # Get basic stats
-            status_result = service.get_stats()
-            if not status_result.success:
-                return jsonify({"success": False, "error": "Failed to get stats"})
+            if not result.success:
+                return jsonify({"success": False, "error": result.error or "Failed to get stats"})
             
-            stats = status_result.data
+            stats = result.data
             
-            # Get recent scrape runs for last run info
-            runs_result = service.list_scrape_runs(limit=1)
-            last_run = None
-            if runs_result.success and runs_result.data.get('runs'):
-                last_run = runs_result.data['runs'][0]['started_at']
-            
-            # Calculate success rate from recent runs
-            recent_runs = service.list_scrape_runs(limit=10)
-            success_rate = 0
-            if recent_runs.success and recent_runs.data.get('runs'):
-                runs = recent_runs.data['runs']
-                completed_runs = [r for r in runs if r['status'] == 'completed']
-                success_rate = (len(completed_runs) / len(runs)) * 100 if runs else 0
-            
-            # TODO: Implement jobs_today calculation when we have date filtering
-            jobs_today = 0
-            
+            # Format response for frontend
             quick_stats = {
-                "last_run": last_run,
-                "jobs_today": jobs_today,
-                "total_jobs": stats.get('internships', 0),
-                "success_rate": round(success_rate, 1)
+                "last_run": stats['last_run']['started_at'] if stats.get('last_run') else None,
+                "last_run_status": stats['last_run']['status'] if stats.get('last_run') else None,
+                "jobs_today": stats.get('jobs_today', 0),
+                "total_jobs": stats.get('total_jobs', 0),
+                "success_rate": stats.get('success_rate_today', 0),
+                "total_scrapes_today": stats.get('total_scrapes_today', 0)
             }
             
             return jsonify({
