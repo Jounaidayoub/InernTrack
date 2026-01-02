@@ -143,14 +143,18 @@ class Pipeline:
                 return False
 
         # Process job
-        result = self.db.ensure_company_and_internship(job, self.scrape_run_id)
-        if result:
+        internship_id = self.db.ensure_company_and_internship(job, self.scrape_run_id)
+        if internship_id:
             self.stats["new_jobs"] += 1
             
-            # Extract contacts from job description
-            company_id = result.get("company_id")
-            if company_id:
-                self._extract_contacts_from_job(job, company_id)
+            # Get company information for contact extraction
+            company_name = job.get("company", "")
+            if company_name:
+                # Find the company to get company_id
+                company = self.db.find_company_by_name(company_name)
+                if company:
+                    company_id = company['id']
+                    self._extract_contacts_from_job(job, company_id)
             
             return True
         else:

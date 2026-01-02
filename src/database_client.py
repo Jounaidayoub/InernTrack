@@ -520,6 +520,18 @@ class DatabaseClient:
             """, (limit,))
             return [dict(r) for r in cursor.fetchall()]
     
+    def get_quick_stats(self):
+        """Get ."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT count(*) as total_jobs FROM scrape_runs
+                        count(*) error_count from scrape_runs where
+            """, )
+            return [dict(r) for r in cursor.fetchall()]
+    
+
+
     # ========================================================================
     # COMPANY METHODS
     # ========================================================================
