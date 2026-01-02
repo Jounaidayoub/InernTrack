@@ -1,10 +1,27 @@
-web-view:
-	@echo "Running Web App..."
-	@python -m web.app
-	@firefox-developer http://127.0.0.1:5000
-dev:
+.PHONY: help backup scrape web-view web-view-firefox web-view-brave all
+
+# Default target - show help
+.DEFAULT_GOAL := help
+
+help:
+	@echo "Available targets:"
+	@echo "  make help           - Show this help message"
+	@echo "  make backup         - Run the backup script"
+	@echo "  make scrape         - Run scraping pipeline and save log"
+	@echo "  make web-view       - Start web app in Brave browser"
+	@echo "  make web-view-firefox - Start web app in Firefox"
+	@echo "  make web-view-brave - Start web app in Brave browser"
+
+# Run backup script
+backup:
+	@echo "Running backup..."
+	@bash backup/backup.sh
+
+# Run the scraping pipeline and save log
+scrape:
 	@echo "Running internship sync pipeline..."
-	@python -m src.main
+	@mkdir -p logs
+	@python -m src.main 2>&1 | tee logs/scrape_$(shell date +%Y%m%d_%H%M%S).log
 
 # Run the web server and view it in the browser
 web-view-firefox:
@@ -30,5 +47,4 @@ web-view-brave:
 
 web-view: web-view-brave
 
-all:
-	@./scripts/run.sh
+all: help
