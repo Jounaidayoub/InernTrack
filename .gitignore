@@ -36,3 +36,6 @@ config.ini
 /data
 
 *.db
+
+backup/dumps/
+backup/archives/
