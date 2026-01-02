@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block title %}Scraper - Internship Tracker{% endblock %}
+
+{% block content %}
+<div class="flex flex-col space-y-6">
+    <!-- Page Header -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-search mr-3" style="color: var(--forest)"></i>
+            Job Scraper
+        </h1>
+        <p class="text-gray-600 mt-2">
+            Monitor and control the job scraping process to find new internship opportunities
+        </p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Last Run</p>
+                    <p class="text-lg font-semibold" id="lastRunTime">Loading...</p>
+                </div>
+                <i class="fas fa-clock text-2xl opacity-50" style="color: var(--sage)"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Jobs Today</p>
+                    <p class="text-lg font-semibold" id="jobsToday">-</p>
+                </div>
+                <i class="fas fa-calendar-day text-2xl opacity-50" style="color: var(--sage)"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Jobs</p>
+                    <p class="text-lg font-semibold" id="totalJobs">-</p>
+                </div>
+                <i class="fas fa-briefcase text-2xl opacity-50" style="color: var(--sage)"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Success Rate</p>
+                    <p class="text-lg font-semibold" id="successRate">-</p>
+                </div>
+                <i class="fas fa-chart-line text-2xl opacity-50" style="color: var(--sage)"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrape Control -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <i class="fas fa-play-circle mr-2" style="color: var(--forest)"></i>
+            Scraper Control
+        </h2>
+        
+        <!-- Current Configuration Preview -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 class="text-sm font-medium text-gray-700 mb-2">Current Configuration</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-600">Search Terms:</span>
+                    <span class="font-medium" id="configSearchTerms">Loading...</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Locations:</span>
+                    <span class="font-medium" id="configLocations">Loading...</span>
+                </div>
+                <div>
+                    <span class="text-gray-600">Sites:</span>
+                    <span class="font-medium" id="configSites">Loading...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div id="scrapeStatus" class="mb-4 p-4 rounded-lg bg-gray-100">
+            <div class="flex items-center justify-between">
+                <span class="font-medium">Status:</span>
+                <span id="statusBadge" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700">
+                    Idle
+                </span>
+            </div>
+            <div id="scrapeProgress" class="hidden mt-3">
+                <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                    <span id="progressText">Starting...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="h-2 rounded-full transition-all duration-300" style="width: 0%; background-color: var(--forest)"></div>
+                </div>
+            </div>
+            <div id="scrapeStats" class="hidden mt-3 text-sm text-gray-600">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="flex justify-between">
+                        <span>Jobs Found:</span>
+                        <span id="jobsFound">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>New Jobs:</span>
+                        <span id="newJobs">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Duplicates:</span>
+                        <span id="duplicateJobs">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Errors:</span>
+                        <span id="errorJobs">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="flex gap-3">
+            <button 
+                id="startScrapeBtn"
+                onclick="startScrape()"
+                class="flex-1 px-6 py-3 btn-accent-dark rounded-lg transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <i class="fas fa-play mr-2"></i>
+                Start Scraping
+            </button>
+            <button 
+                id="stopScrapeBtn"
+                onclick="stopScrape()"
+                class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+            >
+                <i class="fas fa-stop mr-2"></i>
+                Stop Scraping
+            </button>
+            <a 
+                href="/settings"
+                class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center justify-center"
+            >
+                <i class="fas fa-cog mr-2"></i>
+                Settings
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Log Viewer -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-terminal mr-2" style="color: var(--sage)"></i>
+                    Live Logs
+                </h2>
+                <button 
+                    onclick="clearLogs()"
+                    class="text-sm text-gray-500 hover:text-gray-700 transition"
+                >
+                    <i class="fas fa-trash mr-1"></i>
+                    Clear
+                </button>
+            </div>
+            <div 
+                id="logViewer" 
+                class="bg-gray-900 text-green-400 rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs leading-relaxed"
+            >
+                <div class="text-gray-500">Waiting for scraper to start...</div>
+            </div>
+            <label class="flex items-center mt-3 text-sm text-gray-600 cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    id="autoScroll" 
+                    checked
+                    class="mr-2"
+                />
+                Auto-scroll to bottom
+            </label>
+        </div>
+
+        <!-- Scrape History -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-history mr-2" style="color: var(--sage)"></i>
+                    Recent Runs
+                </h2>
+                <button 
+                    onclick="loadScrapeHistory()"
+                    class="text-sm text-gray-500 hover:text-gray-700 transition"
+                >
+                    <i class="fas fa-refresh mr-1"></i>
+                    Refresh
+                </button>
+            </div>
+            <div id="scrapeHistory" class="space-y-3 max-h-80 overflow-y-auto">
+                <div class="text-gray-500 text-sm">Loading history...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global state
+let isRunning = false;
+let pollInterval = null;
+let logIndex = 0;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    checkScrapeStatus();
+    loadScrapeHistory();
+    loadQuickStats();
+    loadConfiguration();
+});
+
+// Quick Stats Loading
+async function loadQuickStats() {
+    try {
+        const response = await fetch('/api/stats/quick');
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('lastRunTime').textContent = data.data.last_run || 'Never';
+            document.getElementById('jobsToday').textContent = data.data.jobs_today || '0';
+            document.getElementById('totalJobs').textContent = data.data.total_jobs || '0';
+            document.getElementById('successRate').textContent = (data.data.success_rate || 0) + '%';
+        }
+    } catch (error) {
+        console.error('Error loading quick stats:', error);
+    }
+}
+
+// Configuration Loading
+async function loadConfiguration() {
+    try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        
+
+        
+            const settings = data.settings;
+            console.log();
+            document.getElementById('configSearchTerms').textContent = 
+                (settings.search_terms.value || []).slice(0, 3).join(', ') + 
+                (settings.search_terms.value?.length > 3 ? '...' : '');
+            document.getElementById('configLocations').textContent = 
+                (settings.locations.value || []).slice(0, 3).join(', ') +
+                (settings.locations.value?.length > 3 ? '...' : '');
+            document.getElementById('configSites').textContent = 
+                (settings.site_names.value || []).join(', ');
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+    }
+}
+
+// Check initial scrape status
+async function checkScrapeStatus() {
+    try {
+        const response = await fetch('/api/scrape/status');
+        const data = await response.json();
+        
+        isRunning = data.is_running;
+        updateScrapeUI(data.is_running, data.status);
+        
+        if (data.is_running) {
+            startPolling();
+        }
+        
+        // Update stats if available
+        if (data.progress) {
+            updateStats(data.progress);
+        }
+    } catch (error) {
+        console.error('Error checking status:', error);
+    }
+}
+
+// Scraping Control
+async function startScrape() {
+    try {
+        const response = await fetch('/api/scrape/start', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Scraper started!', 'success');
+            isRunning = true;
+            updateScrapeUI(true);
+            startPolling();
+            clearLogs();
+        } else {
+            showNotification(data.error || 'Failed to start scraper', 'error');
+        }
+    } catch (error) {
+        console.error('Error starting scrape:', error);
+        showNotification('Failed to start scraper', 'error');
+    }
+}
+
+async function stopScrape() {
+    try {
+        const response = await fetch('/api/scrape/stop', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Scraper stopped', 'warning');
+        }
+    } catch (error) {
+        console.error('Error stopping scrape:', error);
+    }
+}
+
+// UI Updates
+function updateScrapeUI(running, status = null) {
+    const startBtn = document.getElementById('startScrapeBtn');
+    const stopBtn = document.getElementById('stopScrapeBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const progressDiv = document.getElementById('scrapeProgress');
+    const statsDiv = document.getElementById('scrapeStats');
+    
+    startBtn.disabled = running;
+    stopBtn.disabled = !running;
+    
+    if (running) {
+        statusBadge.textContent = 'Running';
+        statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
+        progressDiv.classList.remove('hidden');
+        statsDiv.classList.remove('hidden');
+    } else {
+        // Show final status based on completion status
+        if (status === 'completed') {
+            statusBadge.textContent = 'Completed';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
+        } else if (status === 'failed') {
+            statusBadge.textContent = 'Failed';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700';
+        } else if (status === 'cancelled') {
+            statusBadge.textContent = 'Cancelled';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700';
+        } else {
+            statusBadge.textContent = 'Idle';
+            statusBadge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-gray-300 text-gray-700';
+        }
+        // Keep progress visible for a moment after completion
+        if (status && status !== 'idle') {
+            // Don't hide progress immediately - show final stats
+        } else {
+            progressDiv.classList.add('hidden');
+            statsDiv.classList.add('hidden');
+        }
+    }
+}
+
+function updateStats(progress) {
+    const statsDiv = document.getElementById('scrapeStats');
+    statsDiv.classList.remove('hidden');
+    
+    // Progress object contains: total_found, processed, new_jobs, duplicates, errors
+    document.getElementById('jobsFound').textContent = progress.total_found || 0;
+    document.getElementById('newJobs').textContent = progress.new_jobs || 0;
+    document.getElementById('duplicateJobs').textContent = progress.duplicates || 0;
+    document.getElementById('errorJobs').textContent = progress.errors || 0;
+    
+    // Calculate and update progress bar
+    const total = progress.total_found || 0;
+    const processed = progress.processed || 0;
+    
+    if (total > 0) {
+        const percent = Math.round((processed / total) * 100);
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
+        
+        progressBar.style.width = `${percent}%`;
+        progressPercent.textContent = `${percent}%`;
+        progressText.textContent = `Processing ${processed}/${total} jobs...`;
+    }
+}
+
+// Polling
+function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    
+    pollInterval = setInterval(async () => {
+        try {
+            // Get logs
+            const logsResponse = await fetch(`/api/scrape/logs?since=${logIndex}`);
+            const logsData = await logsResponse.json();
+            
+            if (logsData.logs && logsData.logs.length > 0) {
+                appendLogs(logsData.logs);
+                logIndex = logsData.next_index;
+            }
+            
+            // Get status
+            const statusResponse = await fetch('/api/scrape/status');
+            const statusData = await statusResponse.json();
+            
+            // Update progress if available
+            if (statusData.progress) {
+                updateStats(statusData.progress);
+            }
+            
+            if (!statusData.is_running && isRunning) {
+                // Scrape finished - update UI with final status
+                isRunning = false;
+                updateScrapeUI(false, statusData.status);
+                stopPolling();
+                loadScrapeHistory();
+                loadQuickStats();
+                
+                // Show appropriate notification based on status
+                if (statusData.status === 'completed') {
+                    showNotification('Scraping completed successfully!', 'success');
+                } else if (statusData.status === 'failed') {
+                    showNotification('Scraping failed: ' + (statusData.error_message || 'Unknown error'), 'error');
+                } else if (statusData.status === 'cancelled') {
+                    showNotification('Scraping was cancelled', 'warning');
+                }
+            }
+        } catch (error) {
+            console.error('Error polling:', error);
+        }
+    }, 1000);
+}
+
+function stopPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+}
+
+// Log Management
+function appendLogs(logs) {
+    const viewer = document.getElementById('logViewer');
+    const autoScroll = document.getElementById('autoScroll').checked;
+    
+    // Remove placeholder if exists
+    const placeholder = viewer.querySelector('.text-gray-500');
+    if (placeholder && logs.length > 0) {
+        placeholder.remove();
+    }
+    
+    logs.forEach(log => {
+        const line = document.createElement('div');
+        line.className = `mb-1 ${getLogClass(log.level)}`;
+        const time = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : '';
+        line.innerHTML = `<span class="text-gray-500">[${time}]</span> ${escapeHtml(log.message)}`;
+        viewer.appendChild(line);
+    });
+    
+    if (autoScroll) {
+        viewer.scrollTop = viewer.scrollHeight;
+    }
+}
+
+function getLogClass(level) {
+    switch (level?.toUpperCase()) {
+        case 'ERROR': return 'text-red-400';
+        case 'WARNING': return 'text-yellow-400';
+        case 'INFO': return 'text-green-400';
+        case 'DEBUG': return 'text-gray-400';
+        default: return 'text-green-400';
+    }
+}
+
+function clearLogs() {
+    const viewer = document.getElementById('logViewer');
+    viewer.innerHTML = '<div class="text-gray-500">Waiting for scraper to start...</div>';
+    logIndex = 0;
+}
+
+// History Management
+async function loadScrapeHistory() {
+    try {
+        const response = await fetch('/api/scrape/history');
+        const data = await response.json();
+        
+        const container = document.getElementById('scrapeHistory');
+        
+        if (!data.runs || data.runs.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 text-sm">No scrape runs yet</div>';
+            return;
+        }
+        
+        container.innerHTML = data.runs.map(run => `
+            <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium">${formatDate(run.started_at)}</span>
+                    <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(run.status)}">
+                        ${run.status}
+                    </span>
+                </div>
+                <div class="text-xs text-gray-500">
+                    ${run.jobs_found || 0} jobs found • ${run.new_jobs || 0} new • ${run.duplicates || 0} dupes
+                </div>
+                ${run.end_time ? `<div class="text-xs text-gray-400 mt-1">
+                    Duration: ${calculateDuration(run.started_at, run.end_time)}
+                </div>` : ''}
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading history:', error);
+        document.getElementById('scrapeHistory').innerHTML = 
+            '<div class="text-red-500 text-sm">Error loading history</div>';
+    }
+}
+
+// Utility Functions
+function getStatusClass(status) {
+    switch (status) {
+        case 'completed': return 'bg-green-100 text-green-700';
+        case 'failed': return 'bg-red-100 text-red-700';
+        case 'running': return 'bg-blue-100 text-blue-700';
+        case 'stopped': return 'bg-yellow-100 text-yellow-700';
+        default: return 'bg-gray-100 text-gray-700';
+    }
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+}
+
+function calculateDuration(start, end) {
+    if (!start || !end) return 'N/A';
+    const startTime = new Date(start);
+    const endTime = new Date(end);
+    const duration = Math.round((endTime - startTime) / 1000);
+    
+    if (duration < 60) return `${duration}s`;
+    if (duration < 3600) return `${Math.round(duration / 60)}m`;
+    return `${Math.round(duration / 3600)}h ${Math.round((duration % 3600) / 60)}m`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: 'bg-[#355E3B]',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500',
+        info: 'bg-[#9CAF88]'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('opacity-0');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    stopPolling();
+});
+</script>
+{% endblock %}
