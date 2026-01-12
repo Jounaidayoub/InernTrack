@@ -1286,6 +1286,317 @@ class DatabaseClient:
             
             return stats
     
+
+    # ========================================================================
+    # USER PROFILE METHODS (Resume Generator)
+    # ========================================================================
+
+    def get_user_profile(self) -> Optional[Dict]:
+        """Get the user profile (singleton)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_profile LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                result = dict(row)
+                result['skills'] = json.loads(result['skills']) if result.get('skills') else []
+                return result
+            return None
+
+    def save_user_profile(self, data: Dict[str, Any]) -> int:
+        """Create or update user profile (upsert)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            skills_json = json.dumps(data.get('skills', []))
+
+            # Check if profile exists
+            cursor.execute("SELECT id FROM user_profile LIMIT 1")
+            existing = cursor.fetchone()
+
+            if existing:
+                cursor.execute("""
+                    UPDATE user_profile SET
+                        full_name = ?, email = ?, phone = ?, location = ?,
+                        linkedin_url = ?, github_url = ?, portfolio_url = ?,
+                        skills = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (
+                    data['full_name'], data['email'], data.get('phone'),
+                    data.get('location'), data.get('linkedin_url'),
+                    data.get('github_url'), data.get('portfolio_url'),
+                    skills_json, existing['id']
+                ))
+                conn.commit()
+                return existing['id']
+            else:
+                cursor.execute("""
+                    INSERT INTO user_profile (
+                        full_name, email, phone, location,
+                        linkedin_url, github_url, portfolio_url, skills
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    data['full_name'], data['email'], data.get('phone'),
+                    data.get('location'), data.get('linkedin_url'),
+                    data.get('github_url'), data.get('portfolio_url'),
+                    skills_json
+                ))
+                conn.commit()
+                return cursor.lastrowid
+
+    # ========================================================================
+    # USER EXPERIENCE METHODS
+    # ========================================================================
+
+    def list_user_experiences(self, profile_id: int = None) -> List[Dict]:
+        """List all user experiences."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if profile_id:
+                cursor.execute(
+                    "SELECT * FROM user_experiences WHERE user_profile_id = ? ORDER BY start_date DESC",
+                    (profile_id,)
+                )
+            else:
+                cursor.execute("SELECT * FROM user_experiences ORDER BY start_date DESC")
+
+            results = []
+            for row in cursor.fetchall():
+                item = dict(row)
+                item['bullets'] = json.loads(item['bullets']) if item.get('bullets') else []
+                results.append(item)
+            return results
+
+    def create_user_experience(self, profile_id: int, data: Dict[str, Any]) -> int:
+        """Create a new experience entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_experiences (
+                    user_profile_id, company, title, location,
+                    start_date, end_date, is_current, description, bullets
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                profile_id, data['company'], data['title'], data.get('location'),
+                data['start_date'], data.get('end_date'), data.get('is_current', False),
+                data.get('description'), json.dumps(data.get('bullets', []))
+            ))
+            conn.commit()
+            return cursor.lastrowid
+
+    def update_user_experience(self, exp_id: int, data: Dict[str, Any]) -> bool:
+        """Update an experience entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE user_experiences SET
+                    company = ?, title = ?, location = ?,
+                    start_date = ?, end_date = ?, is_current = ?,
+                    description = ?, bullets = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (
+                data['company'], data['title'], data.get('location'),
+                data['start_date'], data.get('end_date'), data.get('is_current', False),
+                data.get('description'), json.dumps(data.get('bullets', [])), exp_id
+            ))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_user_experience(self, exp_id: int) -> bool:
+        """Delete an experience entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_experiences WHERE id = ?", (exp_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    # ========================================================================
+    # USER PROJECT METHODS
+    # ========================================================================
+
+    def list_user_projects(self, profile_id: int = None) -> List[Dict]:
+        """List all user projects."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if profile_id:
+                cursor.execute(
+                    "SELECT * FROM user_projects WHERE user_profile_id = ? ORDER BY created_at DESC",
+                    (profile_id,)
+                )
+            else:
+                cursor.execute("SELECT * FROM user_projects ORDER BY created_at DESC")
+
+            results = []
+            for row in cursor.fetchall():
+                item = dict(row)
+                item['tech_stack'] = json.loads(item['tech_stack']) if item.get('tech_stack') else []
+                item['bullets'] = json.loads(item['bullets']) if item.get('bullets') else []
+                results.append(item)
+            return results
+
+    def create_user_project(self, profile_id: int, data: Dict[str, Any]) -> int:
+        """Create a new project entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_projects (
+                    user_profile_id, title, project_url, repo_url,
+                    description, tech_stack, bullets
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                profile_id, data['title'], data.get('project_url'), data.get('repo_url'),
+                data.get('description'), json.dumps(data.get('tech_stack', [])),
+                json.dumps(data.get('bullets', []))
+            ))
+            conn.commit()
+            return cursor.lastrowid
+
+    def update_user_project(self, project_id: int, data: Dict[str, Any]) -> bool:
+        """Update a project entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE user_projects SET
+                    title = ?, project_url = ?, repo_url = ?,
+                    description = ?, tech_stack = ?, bullets = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (
+                data['title'], data.get('project_url'), data.get('repo_url'),
+                data.get('description'), json.dumps(data.get('tech_stack', [])),
+                json.dumps(data.get('bullets', [])), project_id
+            ))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_user_project(self, project_id: int) -> bool:
+        """Delete a project entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_projects WHERE id = ?", (project_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    # ========================================================================
+    # USER EDUCATION METHODS
+    # ========================================================================
+
+    def list_user_education(self, profile_id: int = None) -> List[Dict]:
+        """List all user education entries."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if profile_id:
+                cursor.execute(
+                    "SELECT * FROM user_education WHERE user_profile_id = ? ORDER BY start_date DESC",
+                    (profile_id,)
+                )
+            else:
+                cursor.execute("SELECT * FROM user_education ORDER BY start_date DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def create_user_education(self, profile_id: int, data: Dict[str, Any]) -> int:
+        """Create a new education entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_education (
+                    user_profile_id, institution, degree, field_of_study,
+                    location, start_date, end_date
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                profile_id, data['institution'], data['degree'],
+                data.get('field_of_study'), data.get('location'),
+                data['start_date'], data.get('end_date')
+            ))
+            conn.commit()
+            return cursor.lastrowid
+
+    def update_user_education(self, edu_id: int, data: Dict[str, Any]) -> bool:
+        """Update an education entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE user_education SET
+                    institution = ?, degree = ?, field_of_study = ?,
+                    location = ?, start_date = ?, end_date = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (
+                data['institution'], data['degree'], data.get('field_of_study'),
+                data.get('location'), data['start_date'], data.get('end_date'), edu_id
+            ))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_user_education(self, edu_id: int) -> bool:
+        """Delete an education entry."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_education WHERE id = ?", (edu_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    # ========================================================================
+    # GENERATED RESUME METHODS
+    # ========================================================================
+
+    def save_generated_resume(self, internship_id: int, profile_id: int,
+                              content_json: str) -> int:
+        """Save a generated resume."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO generated_resumes (internship_id, user_profile_id, content_json)
+                VALUES (?, ?, ?)
+            """, (internship_id, profile_id, content_json))
+            conn.commit()
+            return cursor.lastrowid
+
+    def update_generated_resume(self, resume_id: int, edited_json: str) -> bool:
+        """Update the edited JSON for a generated resume."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE generated_resumes SET
+                    edited_json = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (edited_json, resume_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def get_generated_resume(self, resume_id: int) -> Optional[Dict]:
+        """Get a generated resume by ID."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM generated_resumes WHERE id = ?", (resume_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_resume_for_internship(self, internship_id: int) -> Optional[Dict]:
+        """Get the most recent generated resume for an internship."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM generated_resumes
+                WHERE internship_id = ?
+                ORDER BY created_at DESC LIMIT 1
+            """, (internship_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_master_profile_data(self) -> Optional[Dict]:
+        """Get complete master profile with all related data for LLM context."""
+        profile = self.get_user_profile()
+        if not profile:
+            return None
+
+        return {
+            'profile': profile,
+            'experiences': self.list_user_experiences(profile['id']),
+            'projects': self.list_user_projects(profile['id']),
+            'education': self.list_user_education(profile['id'])
+        }
+
     def close(self):
         """Cleanup (connections auto-close with context managers)."""
         pass
