@@ -173,6 +173,14 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
     
     VERBOSE: int = int(os.getenv("VERBOSE", "2"))
+
+    # ============================================================================
+    # LLM CONFIGURATION (Resume Generator)
+    # ============================================================================
+
+    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+    LLM_API_KEY: Optional[str] = os.getenv("LLM_API_KEY")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o")
     
     # ============================================================================
     # VALIDATION
