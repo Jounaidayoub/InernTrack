@@ -426,7 +426,101 @@ class DatabaseClient:
                     last_run TIMESTAMP,
                     run_count INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                )
+            """)
+
+            # ================================================================
+            # USER_PROFILE - Singleton table for user's master profile
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_profile (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    full_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    phone TEXT,
+                    location TEXT,
+                    linkedin_url TEXT,
+                    github_url TEXT,
+                    portfolio_url TEXT,
+                    skills TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ================================================================
+            # USER_EXPERIENCES - Work history for resume
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_experiences (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_profile_id INTEGER,
+                    company TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    location TEXT,
+                    start_date TEXT NOT NULL,
+                    end_date TEXT,
+                    is_current BOOLEAN DEFAULT FALSE,
+                    description TEXT,
+                    bullets TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_profile_id) REFERENCES user_profile (id) ON DELETE CASCADE
+                )
+            """)
+
+            # ================================================================
+            # USER_PROJECTS - Portfolio projects for resume
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_projects (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_profile_id INTEGER,
+                    title TEXT NOT NULL,
+                    project_url TEXT,
+                    repo_url TEXT,
+                    description TEXT,
+                    tech_stack TEXT,
+                    bullets TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_profile_id) REFERENCES user_profile (id) ON DELETE CASCADE
+                )
+            """)
+
+            # ================================================================
+            # USER_EDUCATION - Education history for resume
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_education (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_profile_id INTEGER,
+                    institution TEXT NOT NULL,
+                    degree TEXT NOT NULL,
+                    field_of_study TEXT,
+                    location TEXT,
+                    start_date TEXT NOT NULL,
+                    end_date TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_profile_id) REFERENCES user_profile (id) ON DELETE CASCADE
+                )
+            """)
+
+            # ================================================================
+            # GENERATED_RESUMES - Stored resume generations
+            # ================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS generated_resumes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    internship_id INTEGER,
+                    user_profile_id INTEGER,
+                    content_json TEXT NOT NULL,
+                    edited_json TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (internship_id) REFERENCES internships (id) ON DELETE SET NULL,
+                    FOREIGN KEY (user_profile_id) REFERENCES user_profile (id) ON DELETE SET NULL
                 )
             """)
             
@@ -453,6 +547,10 @@ class DatabaseClient:
             "CREATE INDEX IF NOT EXISTS idx_applications_internship ON applications (internship_id)",
             "CREATE INDEX IF NOT EXISTS idx_scrape_runs_status ON scrape_runs (status)",
             "CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts (company_id)",
+            "CREATE INDEX IF NOT EXISTS idx_user_experiences_profile ON user_experiences (user_profile_id)",
+            "CREATE INDEX IF NOT EXISTS idx_user_projects_profile ON user_projects (user_profile_id)",
+            "CREATE INDEX IF NOT EXISTS idx_user_education_profile ON user_education (user_profile_id)",
+            "CREATE INDEX IF NOT EXISTS idx_generated_resumes_internship ON generated_resumes (internship_id)",
         ]
         for idx in indexes:
             try:
