@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Engineer Resume</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            line-height: 1.15;
+            color: #000;
+            background: #fff;
+            padding: 0.5in 0.75in;
+        }
+        
+        .resume {
+            max-width: 8.5in;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 8pt;
+        }
+        
+        .header h1 {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 2pt;
+        }
+        
+        .contact {
+            font-size: 10pt;
+            line-height: 1.3;
+        }
+        
+        .contact a {
+            color: #000;
+            text-decoration: underline;
+        }
+        
+        .section {
+            margin-bottom: 10pt;
+        }
+        
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            margin-bottom: 4pt;
+            padding-bottom: 1pt;
+        }
+        
+        .item {
+            margin-bottom: 8pt;
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 2pt;
+        }
+        
+        .item-subheader {
+            display: flex;
+            justify-content: space-between;
+            font-style: italic;
+            margin-bottom: 3pt;
+        }
+        
+        .item-description ul {
+            margin-left: 20pt;
+            margin-top: 2pt;
+        }
+        
+        .item-description li {
+            margin-bottom: 3pt;
+        }
+        
+        .skills-list {
+            margin-left: 0;
+            list-style: none;
+        }
+        
+        .skills-list li {
+            margin-bottom: 2pt;
+        }
+        
+        .skills-list strong {
+            display: inline-block;
+            width: 120pt;
+        }
+        
+        @media print {
+            body {
+                padding: 0.5in 0.75in;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 0.25in;
+                font-size: 10pt;
+            }
+            
+            .item-header,
+            .item-subheader {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="resume">
+        <header class="header">
+            <h1>First Last</h1>
+            <div class="contact">
+                <div>123-456-7890 | email@example.com | linkedin.com/in/yourprofile | github.com/username | City, State</div>
+            </div>
+        </header>
+
+        <section class="section">
+            <h2 class="section-title">Education</h2>
+            <div class="item">
+                <div class="item-header">
+                    <span>University Name</span>
+                    <span>City, State</span>
+                </div>
+                <div class="item-subheader">
+                    <span>Bachelor of Science in Computer Science; GPA: 3.XX/4.0</span>
+                    <span>Expected May 2024</span>
+                </div>
+                <div style="margin-top: 2pt;">
+                    <strong>Relevant Coursework:</strong> Data Structures & Algorithms, Software Engineering, Computer Systems, Database Systems, Web Development, Operating Systems, Machine Learning
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Experience</h2>
+            
+            <div class="item">
+                <div class="item-header">
+                    <span>Company Name</span>
+                    <span>City, State</span>
+                </div>
+                <div class="item-subheader">
+                    <span><em>Software Engineering Intern</em></span>
+                    <span>May 2023 – Aug 2023</span>
+                </div>
+                <div class="item-description">
+                    <ul>
+                        <li>Developed and deployed a RESTful API using Node.js and Express to handle 10,000+ daily requests, improving system response time by 25%</li>
+                        <li>Implemented user authentication and authorization using JWT tokens and OAuth 2.0, enhancing application security for 50,000+ users</li>
+                        <li>Collaborated with cross-functional team of 8 engineers to design and implement new features using Agile methodologies, reducing sprint cycle time by 15%</li>
+                        <li>Optimized database queries in PostgreSQL, reducing query execution time by 40% and improving overall application performance</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="item">
+                <div class="item-header">
+                    <span>Previous Company / University Lab</span>
+                    <span>City, State</span>
+                </div>
+                <div class="item-subheader">
+                    <span><em>Software Developer / Research Assistant</em></span>
+                    <span>Jan 2023 – May 2023</span>
+                </div>
+                <div class="item-description">
+                    <ul>
+                        <li>Built a full-stack web application using React and Django to streamline data collection process, reducing manual data entry time by 60%</li>
+                        <li>Designed and implemented database schema using MongoDB to store and retrieve research data efficiently</li>
+                        <li>Created automated testing suite using Jest and Pytest, achieving 85% code coverage and reducing bugs in production by 30%</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Projects</h2>
+            
+            <div class="item">
+                <div class="item-header">
+                    <span><strong>E-Commerce Web Application</strong> | React, Node.js, Express, MongoDB, AWS</span>
+                    <span>Sep 2023 – Dec 2023</span>
+                </div>
+                <div class="item-description">
+                    <ul>
+                        <li>Developed full-stack e-commerce platform with product catalog, shopping cart, and checkout functionality serving 1,000+ users</li>
+                        <li>Integrated Stripe payment API for secure transaction processing and implemented email notification system using SendGrid</li>
+                        <li>Deployed application on AWS EC2 with Docker containerization and set up CI/CD pipeline using GitHub Actions</li>
+                        <li>Implemented responsive design using Tailwind CSS, ensuring optimal user experience across mobile and desktop devices</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="item">
+                <div class="item-header">
+                    <span><strong>Machine Learning Image Classifier</strong> | Python, TensorFlow, Keras, Flask</span>
+                    <span>Mar 2023 – May 2023</span>
+                </div>
+                <div class="item-description">
+                    <ul>
+                        <li>Built convolutional neural network (CNN) to classify images with 92% accuracy using TensorFlow and Keras</li>
+                        <li>Processed and augmented dataset of 50,000+ images using NumPy and OpenCV to improve model performance</li>
+                        <li>Created Flask API to serve model predictions and developed simple web interface for real-time image classification</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="item">
+                <div class="item-header">
+                    <span><strong>Real-Time Chat Application</strong> | JavaScript, Socket.io, Express, Redis</span>
+                    <span>Jan 2023 – Feb 2023</span>
+                </div>
+                <div class="item-description">
+                    <ul>
+                        <li>Developed real-time messaging application supporting multiple chat rooms and private messaging using WebSocket connections</li>
+                        <li>Implemented session management and caching with Redis to maintain user state and improve application performance</li>
+                        <li>Designed responsive UI with vanilla JavaScript and CSS, handling concurrent connections from 100+ users</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Technical Skills</h2>
+            <ul class="skills-list">
+                <li><strong>Languages:</strong> JavaScript, Python, Java, C++, SQL, HTML/CSS, TypeScript</li>
+                <li><strong>Frameworks:</strong> React, Node.js, Express, Django, Flask, Spring Boot, Next.js</li>
+                <li><strong>Databases:</strong> PostgreSQL, MongoDB, MySQL, Redis, Firebase</li>
+                <li><strong>Tools/Technologies:</strong> Git, Docker, AWS, Linux, REST APIs, GraphQL, CI/CD, Agile/Scrum</li>
+                <li><strong>Libraries:</strong> TensorFlow, Pandas, NumPy, jQuery, Bootstrap, Tailwind CSS</li>
+            </ul>
+        </section>
+    </div>
+</body>
+</html>
