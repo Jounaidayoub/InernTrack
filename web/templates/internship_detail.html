@@ -1,8 +1,10 @@
-{% extends 'base.html' %}
-{% block title %}{{ internship.title }} - InternTrack{% endblock %}
-{% block content %}
+{% extends 'base.html' %} {% block title %}{{ internship.title }} -
+InternTrack{% endblock %} {% block content %}
 <div class="mb-4">
-  <a href="/internships" class="text-sm text-gray-500 hover:text-forest flex items-center gap-1">
+  <a
+    href="/internships"
+    class="text-sm text-gray-500 hover:text-forest flex items-center gap-1"
+  >
     <i class="fas fa-arrow-left"></i> Back to Internships
   </a>
 </div>
@@ -13,26 +15,45 @@
     <div class="flex items-start justify-between flex-wrap gap-4">
       <div class="flex items-start gap-4">
         {% if internship.company_logo %}
-        <img src="{{ internship.company_logo }}" alt="{{ internship.company_name }}" class="w-16 h-16 rounded-lg object-cover bg-white shadow">
+        <img
+          src="{{ internship.company_logo }}"
+          alt="{{ internship.company_name }}"
+          class="w-16 h-16 rounded-lg object-cover bg-white shadow"
+        />
         {% else %}
-        <div class="w-16 h-16 rounded-lg bg-sage-light flex items-center justify-center shadow">
+        <div
+          class="w-16 h-16 rounded-lg bg-sage-light flex items-center justify-center shadow"
+        >
           <i class="fas fa-building text-2xl text-forest"></i>
         </div>
         {% endif %}
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">{{ internship.title }}</h1>
-          <a href="/company/{{ internship.company_id }}" class="text-lg text-forest hover:underline">
+          <h1 class="text-2xl font-bold text-gray-900">
+            {{ internship.title }}
+          </h1>
+          <a
+            href="/company/{{ internship.company_id }}"
+            class="text-lg text-forest hover:underline"
+          >
             {{ internship.company_name or 'Unknown Company' }}
           </a>
-          <div class="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+          <div
+            class="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600"
+          >
             {% if internship.location %}
-            <span><i class="fas fa-map-marker-alt mr-1 text-red-400"></i> {{ internship.location }}</span>
-            {% endif %}
-            {% if internship.site %}
-            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium">{{ internship.site }}</span>
-            {% endif %}
-            {% if internship.is_remote %}
-            <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-medium">
+            <span
+              ><i class="fas fa-map-marker-alt mr-1 text-red-400"></i> {{
+              internship.location }}</span
+            >
+            {% endif %} {% if internship.site %}
+            <span
+              class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-medium"
+              >{{ internship.site }}</span
+            >
+            {% endif %} {% if internship.is_remote %}
+            <span
+              class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-medium"
+            >
               <i class="fas fa-home mr-1"></i>Remote
             </span>
             {% endif %}
@@ -40,10 +61,9 @@
         </div>
       </div>
       <div class="text-right">
-        <span class="px-3 py-1 rounded-full text-sm font-medium 
-          {% if internship.status == 'open' %}bg-green-100 text-green-800
-          {% elif internship.status == 'closed' %}bg-red-100 text-red-800
-          {% else %}bg-gray-100 text-gray-800{% endif %}">
+        <span
+          class="px-3 py-1 rounded-full text-sm font-medium {% if internship.status == 'open' %}bg-green-100 text-green-800 {% elif internship.status == 'closed' %}bg-red-100 text-red-800 {% else %}bg-gray-100 text-gray-800{% endif %}"
+        >
           {{ (internship.status or 'unknown')|capitalize }}
         </span>
       </div>
@@ -54,40 +74,53 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 border-b">
     <!-- Salary -->
     <div class="bg-white p-4 rounded-lg shadow-sm">
-      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Salary</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        Salary
+      </div>
       <div class="text-lg font-semibold text-gray-900">
-        {% if internship.salary_min or internship.salary_max %}
-          {% if internship.salary_min %}{{ internship.salary_min|int }}{% endif %}
-          {% if internship.salary_min and internship.salary_max %} - {% endif %}
-          {% if internship.salary_max %}{{ internship.salary_max|int }}{% endif %}
-          <span class="text-sm font-normal text-gray-500">{{ internship.salary_currency or 'USD' }}/{{ internship.salary_interval or 'year' }}</span>
+        {% if internship.salary_min or internship.salary_max %} {% if
+        internship.salary_min %}{{ internship.salary_min|int }}{% endif %} {% if
+        internship.salary_min and internship.salary_max %} - {% endif %} {% if
+        internship.salary_max %}{{ internship.salary_max|int }}{% endif %}
+        <span class="text-sm font-normal text-gray-500"
+          >{{ internship.salary_currency or 'USD' }}/{{
+          internship.salary_interval or 'year' }}</span
+        >
         {% else %}
-          <span class="text-gray-400">Not specified</span>
+        <span class="text-gray-400">Not specified</span>
         {% endif %}
       </div>
     </div>
-    
+
     <!-- Job Type -->
     <div class="bg-white p-4 rounded-lg shadow-sm">
-      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Job Type</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        Job Type
+      </div>
       <div class="text-lg font-semibold text-gray-900">
-        {{ internship.job_type|capitalize if internship.job_type else 'Internship' }}
+        {{ internship.job_type|capitalize if internship.job_type else
+        'Internship' }}
       </div>
     </div>
-    
+
     <!-- Date Posted -->
     <div class="bg-white p-4 rounded-lg shadow-sm">
-      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Date Posted</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        Date Posted
+      </div>
       <div class="text-lg font-semibold text-gray-900">
         {{ internship.date_posted or 'Unknown' }}
       </div>
     </div>
-    
+
     <!-- Experience Level -->
     <div class="bg-white p-4 rounded-lg shadow-sm">
-      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Experience</div>
+      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">
+        Experience
+      </div>
       <div class="text-lg font-semibold text-gray-900">
-        {{ internship.experience_level|capitalize if internship.experience_level else 'Entry Level' }}
+        {{ internship.experience_level|capitalize if internship.experience_level
+        else 'Entry Level' }}
       </div>
     </div>
   </div>
@@ -98,28 +131,36 @@
       <!-- Description -->
       <div class="lg:col-span-2 space-y-6">
         <div>
-          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+          <h2
+            class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2"
+          >
             <i class="fas fa-file-alt text-forest"></i> Job Description
           </h2>
-          <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg" id="description">
-            {{ internship.description|safe if internship.description else 'No description available.' }}
+          <div
+            class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg"
+            id="description"
+          >
+            {{ internship.description|safe if internship.description else 'No
+            description available.' }}
           </div>
         </div>
 
         {% if internship.requirements %}
         <div>
-          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+          <h2
+            class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2"
+          >
             <i class="fas fa-clipboard-list text-forest"></i> Requirements
           </h2>
           <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg">
             {{ internship.requirements|safe }}
           </div>
         </div>
-        {% endif %}
-
-        {% if internship.benefits %}
+        {% endif %} {% if internship.benefits %}
         <div>
-          <h2 class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2">
+          <h2
+            class="text-lg font-semibold mb-3 text-gray-900 flex items-center gap-2"
+          >
             <i class="fas fa-gift text-forest"></i> Benefits
           </h2>
           <div class="prose max-w-none text-gray-700 bg-gray-50 p-4 rounded-lg">
@@ -134,17 +175,31 @@
         <!-- Apply Buttons -->
         <div class="bg-white border rounded-lg p-4">
           {% if internship.job_url %}
-          <a href="{{ internship.job_url }}" target="_blank" rel="noopener noreferrer" 
-             class="block w-full btn-accent text-center py-3 rounded-lg font-medium transition">
-            <i class="fas fa-external-link-alt mr-2"></i> View on {{ internship.site or 'Job Board' }}
+          <a
+            href="{{ internship.job_url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block w-full btn-accent text-center py-3 rounded-lg font-medium transition"
+          >
+            <i class="fas fa-external-link-alt mr-2"></i> View on {{
+            internship.site or 'Job Board' }}
           </a>
-          {% endif %}
-          {% if internship.job_url_direct %}
-          <a href="{{ internship.job_url_direct }}" target="_blank" rel="noopener noreferrer" 
-             class="block w-full mt-2 border-2 border-forest text-forest text-center py-3 rounded-lg font-medium hover:bg-sage-light transition">
+          {% endif %} {% if internship.job_url_direct %}
+          <a
+            href="{{ internship.job_url_direct }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block w-full mt-2 border-2 border-forest text-forest text-center py-3 rounded-lg font-medium hover:bg-sage-light transition"
+          >
             <i class="fas fa-paper-plane mr-2"></i> Apply Directly
           </a>
           {% endif %}
+          <button
+            onclick="showResumeModal()"
+            class="block w-full mt-2 border-2 border-purple-600 text-purple-600 text-center py-3 rounded-lg font-medium hover:bg-purple-50 transition"
+          >
+            <i class="fas fa-magic mr-2"></i> Draft Resume
+          </button>
         </div>
 
         <!-- Job Details -->
@@ -156,36 +211,44 @@
             {% if internship.duration %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Duration</dt>
-              <dd class="text-gray-900 font-medium">{{ internship.duration }}</dd>
+              <dd class="text-gray-900 font-medium">
+                {{ internship.duration }}
+              </dd>
             </div>
-            {% endif %}
-            {% if internship.start_date %}
+            {% endif %} {% if internship.start_date %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Start Date</dt>
-              <dd class="text-gray-900 font-medium">{{ internship.start_date }}</dd>
+              <dd class="text-gray-900 font-medium">
+                {{ internship.start_date }}
+              </dd>
             </div>
-            {% endif %}
-            {% if internship.application_deadline %}
+            {% endif %} {% if internship.application_deadline %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Deadline</dt>
-              <dd class="text-red-600 font-semibold">{{ internship.application_deadline }}</dd>
+              <dd class="text-red-600 font-semibold">
+                {{ internship.application_deadline }}
+              </dd>
             </div>
-            {% endif %}
-            {% if internship.job_level %}
+            {% endif %} {% if internship.job_level %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Level</dt>
-              <dd class="text-gray-900 font-medium">{{ internship.job_level }}</dd>
+              <dd class="text-gray-900 font-medium">
+                {{ internship.job_level }}
+              </dd>
             </div>
-            {% endif %}
-            {% if internship.job_function %}
+            {% endif %} {% if internship.job_function %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Function</dt>
-              <dd class="text-gray-900 font-medium">{{ internship.job_function }}</dd>
+              <dd class="text-gray-900 font-medium">
+                {{ internship.job_function }}
+              </dd>
             </div>
             {% endif %}
             <div class="flex justify-between py-1">
               <dt class="text-gray-500">Scraped</dt>
-              <dd class="text-gray-500 text-xs">{{ internship.date_scraped }}</dd>
+              <dd class="text-gray-500 text-xs">
+                {{ internship.date_scraped }}
+              </dd>
             </div>
           </dl>
         </div>
@@ -201,24 +264,26 @@
               <dt class="text-gray-500">City</dt>
               <dd class="text-gray-900 font-medium">{{ internship.city }}</dd>
             </div>
-            {% endif %}
-            {% if internship.state %}
+            {% endif %} {% if internship.state %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">State</dt>
               <dd class="text-gray-900 font-medium">{{ internship.state }}</dd>
             </div>
-            {% endif %}
-            {% if internship.country %}
+            {% endif %} {% if internship.country %}
             <div class="flex justify-between py-1 border-b border-gray-100">
               <dt class="text-gray-500">Country</dt>
-              <dd class="text-gray-900 font-medium">{{ internship.country }}</dd>
+              <dd class="text-gray-900 font-medium">
+                {{ internship.country }}
+              </dd>
             </div>
             {% endif %}
             <div class="flex justify-between py-1">
               <dt class="text-gray-500">Remote</dt>
               <dd>
                 {% if internship.is_remote %}
-                <span class="text-green-600 font-medium"><i class="fas fa-check"></i> Yes</span>
+                <span class="text-green-600 font-medium"
+                  ><i class="fas fa-check"></i> Yes</span
+                >
                 {% else %}
                 <span class="text-gray-500">No</span>
                 {% endif %}
@@ -233,9 +298,7 @@
           <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <i class="fas fa-envelope text-forest"></i> Contact
           </h3>
-          <div class="text-sm text-gray-700">
-            {{ internship.emails }}
-          </div>
+          <div class="text-sm text-gray-700">{{ internship.emails }}</div>
         </div>
         {% endif %}
       </div>
@@ -243,14 +306,209 @@
   </div>
 </div>
 
-{% endblock %}
-{% block scripts %}
+<!-- Resume Modal -->
+<div
+  id="resume-modal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+>
+  <div
+    class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+  >
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold flex items-center gap-2">
+        <i class="fas fa-magic text-purple-600"></i> Generate Resume
+      </h3>
+      <button
+        onclick="hideResumeModal()"
+        class="text-gray-500 hover:text-gray-700"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Generator View -->
+    <div id="resume-generator">
+      <p class="text-gray-600 mb-4">
+        Generate a tailored resume for this
+        <strong>{{ internship.company_name }}</strong> position. This will use
+        your master profile and AI to highlight relevant experience.
+      </p>
+
+      <div class="bg-purple-50 p-4 rounded-lg mb-6 border border-purple-100">
+        <h4 class="font-medium text-purple-900 mb-2">What happens next?</h4>
+        <ul class="text-sm text-purple-800 space-y-1 ml-4 list-disc">
+          <li>We'll look for keywords in the job description</li>
+          <li>We'll select your most relevant projects and experiences</li>
+          <li>We'll rewrite bullet points to match the job requirements</li>
+          <li>You can edit the result before downloading</li>
+        </ul>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button
+          onclick="hideResumeModal()"
+          class="px-4 py-2 border rounded hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          onclick="generateResume()"
+          class="btn-accent px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white border-none"
+        >
+          <i class="fas fa-magic mr-2"></i> Generate Draft
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading View -->
+    <div id="resume-loading" class="hidden text-center py-8">
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"
+      ></div>
+      <h4 class="text-lg font-medium text-gray-900">Crafting your resume...</h4>
+      <p class="text-gray-500 text-sm mt-2" id="loading-text">
+        Analyzing job requirements...
+      </p>
+    </div>
+
+    <!-- Result View -->
+    <div id="resume-result" class="hidden">
+      <div class="text-center py-4 mb-4">
+        <div
+          class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600 mb-3"
+        >
+          <i class="fas fa-check text-xl"></i>
+        </div>
+        <h4 class="text-lg font-medium text-gray-900">Resume Generated!</h4>
+      </div>
+
+      <div class="flex gap-4 mb-4">
+        <a
+          id="view-resume-btn"
+          href="#"
+          target="_blank"
+          class="flex-1 text-center py-3 border rounded-lg hover:bg-gray-50 font-medium"
+        >
+          <i class="fas fa-eye mr-2"></i> View Resume
+        </a>
+        <a
+          id="edit-resume-btn"
+          href="#"
+          class="flex-1 text-center py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+        >
+          <i class="fas fa-pen mr-2"></i> Edit Resume
+        </a>
+      </div>
+
+      <div class="text-center">
+        <button
+          onclick="resetResumeModal()"
+          class="text-sm text-gray-500 hover:text-gray-700 underline"
+        >
+          Generate Another Version
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
 <script>
   // Parse markdown in description
   const descEl = document.getElementById('description');
   if (descEl && typeof marked !== 'undefined') {
     const raw = descEl.innerHTML;
     descEl.innerHTML = DOMPurify.sanitize(marked.parse(raw));
+  }
+
+  // Resume Modal Logic
+  const internshipId = {{ internship.id }};
+  const loadingTexts = [
+    "Analyzing specific job requirements...",
+    "Matching your technical skills...",
+    "Selecting relevant projects...",
+    "Optimizing experience bullet points...",
+    "Finalizing formatting..."
+  ];
+
+  function showResumeModal() {
+    const modal = document.getElementById('resume-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    resetResumeModal();
+    // Check if we already have a generated resume
+    checkExistingResume();
+  }
+
+  function hideResumeModal() {
+    const modal = document.getElementById('resume-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function resetResumeModal() {
+    document.getElementById('resume-generator').classList.remove('hidden');
+    document.getElementById('resume-loading').classList.add('hidden');
+    document.getElementById('resume-result').classList.add('hidden');
+  }
+
+  async function checkExistingResume() {
+    try {
+      const res = await fetch(`/api/resume/internship/${internshipId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.resume_id) {
+          showResumeResult(data.resume_id);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking existing resume', err);
+    }
+  }
+
+  async function generateResume() {
+    document.getElementById('resume-generator').classList.add('hidden');
+    document.getElementById('resume-loading').classList.remove('hidden');
+
+    // Cycle loading texts
+    let textIdx = 0;
+    const textEl = document.getElementById('loading-text');
+    const textInterval = setInterval(() => {
+      textIdx = (textIdx + 1) % loadingTexts.length;
+      textEl.textContent = loadingTexts[textIdx];
+    }, 2000);
+
+    try {
+      const res = await fetch(`/api/resume/generate/${internshipId}`, {
+        method: 'POST'
+      });
+
+      clearInterval(textInterval);
+
+      if (res.ok) {
+        const data = await res.json();
+        showResumeResult(data.resume_id);
+      } else {
+        const err = await res.json();
+        alert('Error generating resume: ' + (err.error || 'Unknown error'));
+        resetResumeModal();
+      }
+    } catch (err) {
+      clearInterval(textInterval);
+      alert('Network error while generating resume');
+      resetResumeModal();
+    }
+  }
+
+  function showResumeResult(resumeId) {
+    document.getElementById('resume-generator').classList.add('hidden');
+    document.getElementById('resume-loading').classList.add('hidden');
+    const resultDiv = document.getElementById('resume-result');
+    resultDiv.classList.remove('hidden');
+
+    document.getElementById('view-resume-btn').href = `/resume/${resumeId}`;
+    // For now edit button directs to view, or we could add an edit query param if we implement an editor
+    document.getElementById('edit-resume-btn').href = `/resume/${resumeId}?edit=true`;
   }
 </script>
 {% endblock %}
