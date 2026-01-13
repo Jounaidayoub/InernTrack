@@ -8,7 +8,9 @@ __pycache__/
 venv/
 env/
 .venv/
-
+.claude
+docs
+CLAUDE.md
 # Editor/IDE files
 .idea/
 .vscode/

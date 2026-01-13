@@ -18,6 +18,8 @@ from .contacts import ContactsController
 from .database import DatabaseController
 from .export import ExportController
 from .settings import SettingsController
+from .profile import ProfileController
+from .resume import ResumeController
 
 
 def create_blueprint() -> Blueprint:
@@ -32,6 +34,8 @@ def create_blueprint() -> Blueprint:
     DatabaseController(bp).register_routes()
     ExportController(bp).register_routes()
     SettingsController(bp).register_routes()
+    ProfileController(bp).register_routes()
+    ResumeController(bp).register_routes()
     
     return bp
 
@@ -50,4 +54,6 @@ __all__ = [
     'DatabaseController',
     'ExportController',
     'SettingsController',
+    'ProfileController',
+    'ResumeController',
 ]

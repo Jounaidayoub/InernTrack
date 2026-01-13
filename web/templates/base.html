@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -8,18 +8,36 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pQ6Q6..." crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-pQ6Q6..."
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
   </head>
   <body class="bg-gray-50 text-gray-800 font-sans">
     <nav class="bg-white shadow-md border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div>
-            <a href="/" class="text-2xl font-bold brand hover:opacity-80 transition-opacity">InternTrack</a>
-          </div>
+      <div
+        class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between"
+      >
+        <div>
+          <a
+            href="/"
+            class="text-2xl font-bold brand hover:opacity-80 transition-opacity"
+            >InternTrack</a
+          >
+        </div>
         <div class="flex items-center space-x-1">
-        
-          <a href="/internships" class="text-sm nav-link" data-nav="internships">
+          <a
+            href="/internships"
+            class="text-sm nav-link"
+            data-nav="internships"
+          >
             <i class="fas fa-briefcase"></i>
             <span>Internships</span>
           </a>
@@ -39,13 +57,15 @@
             <i class="fas fa-cog"></i>
             <span>Settings</span>
           </a>
+          <a href="/profile" class="text-sm nav-link" data-nav="profile">
+            <i class="fas fa-user-circle"></i>
+            <span>Profile</span>
+          </a>
         </div>
       </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-6">
-      {% block content %}{% endblock %}
-    </main>
+    <main class="max-w-6xl mx-auto p-6">{% block content %}{% endblock %}</main>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
