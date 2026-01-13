@@ -141,12 +141,12 @@ class ResumeService:
 
             # Generate resume via LLM
             logger.info(f"Generating resume for internship {internship_id}")
-            response = self.llm.generate_json(SYSTEM_PROMPT, user_prompt)
-
-            # Clean response (remove markdown code blocks if present)
+            response = self.llm.generate_json(SYSTEM_PROMPT, user_prompt) # use the genearet methid later
+            
+            #a final useless check
             response = self._clean_json_response(response)
 
-            # Validate with Pydantic
+            #TODO : refactor these checks into an llm genrate_model method 
             try:
                 resume = GeneratedResume.model_validate_json(response)
             except Exception as validation_error:
@@ -349,7 +349,7 @@ Dates: {edu.get('start_date')} - {edu.get('end_date', 'Present')}
         try:
             # Validate JSON structure with Pydantic
             GeneratedResume.model_validate_json(edited_json)
-
+            #TODO  HANLDE EDIT HISTROY LATER 
             success = self.db.update_generated_resume(resume_id, edited_json)
             if success:
                 return ServiceResult(success=True, data={'saved': True})
