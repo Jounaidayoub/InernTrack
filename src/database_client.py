@@ -425,7 +425,7 @@ class DatabaseClient:
                     is_active BOOLEAN DEFAULT TRUE,
                     last_run TIMESTAMP,
                     run_count INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
 
