@@ -1,0 +1,871 @@
+{% extends 'base.html' %} {% block title %}My Profile - InternTrack{% endblock
+%} {% block content %}
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold mb-6">My Profile</h1>
+  <p class="text-gray-600 mb-6">
+    Manage your master profile. This information is used to generate tailored
+    resumes for job applications.
+  </p>
+
+  <!-- Profile Form -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <i class="fas fa-user text-forest"></i> Basic Information
+    </h2>
+    <form id="profile-form" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700"
+            >Full Name *</label
+          >
+          <input
+            type="text"
+            name="full_name"
+            required
+            value="{{ data.profile.full_name if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email *</label>
+          <input
+            type="email"
+            name="email"
+            required
+            value="{{ data.profile.email if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone</label>
+          <input
+            type="tel"
+            name="phone"
+            value="{{ data.profile.phone if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700"
+            >Location</label
+          >
+          <input
+            type="text"
+            name="location"
+            placeholder="City, State"
+            value="{{ data.profile.location if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700"
+            >LinkedIn URL</label
+          >
+          <input
+            type="url"
+            name="linkedin_url"
+            placeholder="https://linkedin.com/in/yourprofile"
+            value="{{ data.profile.linkedin_url if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700"
+            >GitHub URL</label
+          >
+          <input
+            type="url"
+            name="github_url"
+            placeholder="https://github.com/username"
+            value="{{ data.profile.github_url if data.profile else '' }}"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+          />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700"
+          >Skills (comma-separated)</label
+        >
+        <input
+          type="text"
+          name="skills"
+          placeholder="Python, JavaScript, React, SQL, Docker"
+          value="{{ data.profile.skills|join(', ') if data.profile and data.profile.skills else '' }}"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-forest focus:ring-forest"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          List your technical skills. These will be matched against job
+          requirements.
+        </p>
+      </div>
+      <button type="submit" class="btn-accent px-4 py-2 rounded-lg">
+        <i class="fas fa-save mr-2"></i> Save Profile
+      </button>
+    </form>
+  </div>
+
+  <!-- Experiences Section -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold flex items-center gap-2">
+        <i class="fas fa-briefcase text-forest"></i> Work Experience
+      </h2>
+      <button
+        onclick="showExperienceModal()"
+        class="text-forest hover:underline text-sm"
+      >
+        <i class="fas fa-plus mr-1"></i> Add Experience
+      </button>
+    </div>
+    <div id="experiences-list" class="space-y-4">
+      {% for exp in data.experiences %}
+      <div
+        class="border rounded-lg p-4 hover:bg-gray-50"
+        data-id="{{ exp.id }}"
+      >
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium text-gray-900">{{ exp.title }}</div>
+            <div class="text-sm text-gray-600">
+              {{ exp.company }} {% if exp.location %}· {{ exp.location }}{%
+              endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ exp.start_date }} - {{ exp.end_date or 'Present' }}
+            </div>
+            {% if exp.bullets %}
+            <ul class="mt-2 text-sm text-gray-600 list-disc list-inside">
+              {% for bullet in exp.bullets[:2] %}
+              <li class="truncate">{{ bullet }}</li>
+              {% endfor %} {% if exp.bullets|length > 2 %}
+              <li class="text-gray-400">
+                +{{ exp.bullets|length - 2 }} more...
+              </li>
+              {% endif %}
+            </ul>
+            {% endif %}
+          </div>
+          <div class="flex gap-2">
+            <button
+              onclick="editExperience({{ exp|tojson|safe }})"
+              class="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              onclick="deleteExperience({{ exp.id }})"
+              class="text-red-600 hover:text-red-800 text-sm"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-gray-500 text-sm py-4 text-center">
+        No work experience added yet. Add your internships, jobs, or relevant
+        positions.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Projects Section -->
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold flex items-center gap-2">
+        <i class="fas fa-code text-forest"></i> Projects
+      </h2>
+      <button
+        onclick="showProjectModal()"
+        class="text-forest hover:underline text-sm"
+      >
+        <i class="fas fa-plus mr-1"></i> Add Project
+      </button>
+    </div>
+    <div id="projects-list" class="space-y-4">
+      {% for proj in data.projects %}
+      <div
+        class="border rounded-lg p-4 hover:bg-gray-50"
+        data-id="{{ proj.id }}"
+      >
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium text-gray-900">{{ proj.title }}</div>
+            <div class="text-sm text-gray-600">
+              {{ proj.tech_stack|join(', ') }}
+            </div>
+            {% if proj.bullets %}
+            <ul class="mt-2 text-sm text-gray-600 list-disc list-inside">
+              {% for bullet in proj.bullets[:2] %}
+              <li class="truncate">{{ bullet }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+          <div class="flex gap-2">
+            <button
+              onclick="editProject({{ proj|tojson|safe }})"
+              class="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              onclick="deleteProject({{ proj.id }})"
+              class="text-red-600 hover:text-red-800 text-sm"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-gray-500 text-sm py-4 text-center">
+        No projects added yet. Add your personal or academic projects.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Education Section -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold flex items-center gap-2">
+        <i class="fas fa-graduation-cap text-forest"></i> Education
+      </h2>
+      <button
+        onclick="showEducationModal()"
+        class="text-forest hover:underline text-sm"
+      >
+        <i class="fas fa-plus mr-1"></i> Add Education
+      </button>
+    </div>
+    <div id="education-list" class="space-y-4">
+      {% for edu in data.education %}
+      <div
+        class="border rounded-lg p-4 hover:bg-gray-50"
+        data-id="{{ edu.id }}"
+      >
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-medium text-gray-900">
+              {{ edu.degree }}{% if edu.field_of_study %} in {{
+              edu.field_of_study }}{% endif %}
+            </div>
+            <div class="text-sm text-gray-600">
+              {{ edu.institution }} {% if edu.location %}· {{ edu.location }}{%
+              endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ edu.start_date }} - {{ edu.end_date or 'Present' }}
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              onclick="editEducation({{ edu|tojson|safe }})"
+              class="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              onclick="deleteEducation({{ edu.id }})"
+              class="text-red-600 hover:text-red-800 text-sm"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-gray-500 text-sm py-4 text-center">
+        No education added yet.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Experience Modal -->
+<div
+  id="experience-modal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+>
+  <div
+    class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
+  >
+    <h3 class="text-lg font-semibold mb-4" id="experience-modal-title">
+      Add Experience
+    </h3>
+    <form id="experience-form" class="space-y-4">
+      <input type="hidden" name="id" />
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Company *</label>
+          <input
+            type="text"
+            name="company"
+            required
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Title *</label>
+          <input
+            type="text"
+            name="title"
+            required
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Start Date *</label>
+          <input
+            type="text"
+            name="start_date"
+            required
+            placeholder="Jan 2023"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">End Date</label>
+          <input
+            type="text"
+            name="end_date"
+            placeholder="Present"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Location</label>
+        <input
+          type="text"
+          name="location"
+          placeholder="City, State"
+          class="mt-1 block w-full rounded border-gray-300"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium"
+          >Bullet Points (one per line)</label
+        >
+        <textarea
+          name="bullets"
+          rows="5"
+          class="mt-1 block w-full rounded border-gray-300"
+          placeholder="Built REST API handling 10k requests/day&#10;Implemented OAuth 2.0 authentication&#10;Reduced page load time by 40%"
+        ></textarea>
+        <p class="mt-1 text-xs text-gray-500">
+          Use action verbs and include metrics where possible.
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onclick="hideExperienceModal()"
+          class="px-4 py-2 border rounded hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn-accent px-4 py-2 rounded">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Project Modal -->
+<div
+  id="project-modal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+>
+  <div
+    class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
+  >
+    <h3 class="text-lg font-semibold mb-4" id="project-modal-title">
+      Add Project
+    </h3>
+    <form id="project-form" class="space-y-4">
+      <input type="hidden" name="id" />
+      <div>
+        <label class="block text-sm font-medium">Project Title *</label>
+        <input
+          type="text"
+          name="title"
+          required
+          class="mt-1 block w-full rounded border-gray-300"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium"
+          >Tech Stack (comma-separated)</label
+        >
+        <input
+          type="text"
+          name="tech_stack"
+          placeholder="React, Node.js, PostgreSQL"
+          class="mt-1 block w-full rounded border-gray-300"
+        />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Project URL</label>
+          <input
+            type="url"
+            name="project_url"
+            placeholder="https://..."
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Repository URL</label>
+          <input
+            type="url"
+            name="repo_url"
+            placeholder="https://github.com/..."
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium"
+          >Bullet Points (one per line)</label
+        >
+        <textarea
+          name="bullets"
+          rows="4"
+          class="mt-1 block w-full rounded border-gray-300"
+          placeholder="Built full-stack e-commerce platform&#10;Integrated Stripe payment processing&#10;Deployed on AWS with CI/CD pipeline"
+        ></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onclick="hideProjectModal()"
+          class="px-4 py-2 border rounded hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn-accent px-4 py-2 rounded">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Education Modal -->
+<div
+  id="education-modal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+>
+  <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+    <h3 class="text-lg font-semibold mb-4" id="education-modal-title">
+      Add Education
+    </h3>
+    <form id="education-form" class="space-y-4">
+      <input type="hidden" name="id" />
+      <div>
+        <label class="block text-sm font-medium">Institution *</label>
+        <input
+          type="text"
+          name="institution"
+          required
+          placeholder="University Name"
+          class="mt-1 block w-full rounded border-gray-300"
+        />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium">Degree *</label>
+          <input
+            type="text"
+            name="degree"
+            required
+            placeholder="Bachelor of Science"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Field of Study</label>
+          <input
+            type="text"
+            name="field_of_study"
+            placeholder="Computer Science"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Start Date *</label>
+          <input
+            type="text"
+            name="start_date"
+            required
+            placeholder="2020"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">End Date</label>
+          <input
+            type="text"
+            name="end_date"
+            placeholder="2024 or Expected 2025"
+            class="mt-1 block w-full rounded border-gray-300"
+          />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Location</label>
+        <input
+          type="text"
+          name="location"
+          placeholder="City, State"
+          class="mt-1 block w-full rounded border-gray-300"
+        />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onclick="hideEducationModal()"
+          class="px-4 py-2 border rounded hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn-accent px-4 py-2 rounded">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // ============================================
+  // Profile Form
+  // ============================================
+  document
+    .getElementById("profile-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        full_name: form.full_name.value,
+        email: form.email.value,
+        phone: form.phone.value || null,
+        location: form.location.value || null,
+        linkedin_url: form.linkedin_url.value || null,
+        github_url: form.github_url.value || null,
+        skills: form.skills.value
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s),
+      };
+
+      try {
+        const res = await fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+          showToast("Profile saved successfully!", "success");
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Error saving profile", "error");
+        }
+      } catch (err) {
+        showToast("Network error", "error");
+      }
+    });
+
+  // ============================================
+  // Experience CRUD
+  // ============================================
+  let editingExperienceId = null;
+
+  function showExperienceModal(data = null) {
+    const modal = document.getElementById("experience-modal");
+    const form = document.getElementById("experience-form");
+    const title = document.getElementById("experience-modal-title");
+
+    form.reset();
+    editingExperienceId = null;
+
+    if (data) {
+      editingExperienceId = data.id;
+      title.textContent = "Edit Experience";
+      form.company.value = data.company || "";
+      form.title.value = data.title || "";
+      form.start_date.value = data.start_date || "";
+      form.end_date.value = data.end_date || "";
+      form.location.value = data.location || "";
+      form.bullets.value = (data.bullets || []).join("\n");
+    } else {
+      title.textContent = "Add Experience";
+    }
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function hideExperienceModal() {
+    const modal = document.getElementById("experience-modal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    editingExperienceId = null;
+  }
+
+  function editExperience(data) {
+    showExperienceModal(data);
+  }
+
+  async function deleteExperience(id) {
+    if (!confirm("Delete this experience?")) return;
+
+    try {
+      const res = await fetch(`/api/profile/experience/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        location.reload();
+      } else {
+        showToast("Error deleting experience", "error");
+      }
+    } catch (err) {
+      showToast("Network error", "error");
+    }
+  }
+
+  document
+    .getElementById("experience-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        company: form.company.value,
+        title: form.title.value,
+        start_date: form.start_date.value,
+        end_date: form.end_date.value || null,
+        location: form.location.value || null,
+        bullets: form.bullets.value
+          .split("\n")
+          .map((b) => b.trim())
+          .filter((b) => b),
+      };
+
+      try {
+        const url = editingExperienceId
+          ? `/api/profile/experience/${editingExperienceId}`
+          : "/api/profile/experience";
+        const method = editingExperienceId ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+          location.reload();
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Error saving experience", "error");
+        }
+      } catch (err) {
+        showToast("Network error", "error");
+      }
+    });
+
+  // ============================================
+  // Project CRUD
+  // ============================================
+  let editingProjectId = null;
+
+  function showProjectModal(data = null) {
+    const modal = document.getElementById("project-modal");
+    const form = document.getElementById("project-form");
+    const title = document.getElementById("project-modal-title");
+
+    form.reset();
+    editingProjectId = null;
+
+    if (data) {
+      editingProjectId = data.id;
+      title.textContent = "Edit Project";
+      form.title.value = data.title || "";
+      form.tech_stack.value = (data.tech_stack || []).join(", ");
+      form.project_url.value = data.project_url || "";
+      form.repo_url.value = data.repo_url || "";
+      form.bullets.value = (data.bullets || []).join("\n");
+    } else {
+      title.textContent = "Add Project";
+    }
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function hideProjectModal() {
+    const modal = document.getElementById("project-modal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    editingProjectId = null;
+  }
+
+  function editProject(data) {
+    showProjectModal(data);
+  }
+
+  async function deleteProject(id) {
+    if (!confirm("Delete this project?")) return;
+
+    try {
+      const res = await fetch(`/api/profile/project/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        location.reload();
+      } else {
+        showToast("Error deleting project", "error");
+      }
+    } catch (err) {
+      showToast("Network error", "error");
+    }
+  }
+
+  document
+    .getElementById("project-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        title: form.title.value,
+        tech_stack: form.tech_stack.value
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s),
+        project_url: form.project_url.value || null,
+        repo_url: form.repo_url.value || null,
+        bullets: form.bullets.value
+          .split("\n")
+          .map((b) => b.trim())
+          .filter((b) => b),
+      };
+
+      try {
+        const url = editingProjectId
+          ? `/api/profile/project/${editingProjectId}`
+          : "/api/profile/project";
+        const method = editingProjectId ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+          location.reload();
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Error saving project", "error");
+        }
+      } catch (err) {
+        showToast("Network error", "error");
+      }
+    });
+
+  // ============================================
+  // Education CRUD
+  // ============================================
+  let editingEducationId = null;
+
+  function showEducationModal(data = null) {
+    const modal = document.getElementById("education-modal");
+    const form = document.getElementById("education-form");
+    const title = document.getElementById("education-modal-title");
+
+    form.reset();
+    editingEducationId = null;
+
+    if (data) {
+      editingEducationId = data.id;
+      title.textContent = "Edit Education";
+      form.institution.value = data.institution || "";
+      form.degree.value = data.degree || "";
+      form.field_of_study.value = data.field_of_study || "";
+      form.start_date.value = data.start_date || "";
+      form.end_date.value = data.end_date || "";
+      form.location.value = data.location || "";
+    } else {
+      title.textContent = "Add Education";
+    }
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function hideEducationModal() {
+    const modal = document.getElementById("education-modal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    editingEducationId = null;
+  }
+
+  function editEducation(data) {
+    showEducationModal(data);
+  }
+
+  async function deleteEducation(id) {
+    if (!confirm("Delete this education?")) return;
+
+    try {
+      const res = await fetch(`/api/profile/education/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        location.reload();
+      } else {
+        showToast("Error deleting education", "error");
+      }
+    } catch (err) {
+      showToast("Network error", "error");
+    }
+  }
+
+  document
+    .getElementById("education-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        institution: form.institution.value,
+        degree: form.degree.value,
+        field_of_study: form.field_of_study.value || null,
+        start_date: form.start_date.value,
+        end_date: form.end_date.value || null,
+        location: form.location.value || null,
+      };
+
+      try {
+        const url = editingEducationId
+          ? `/api/profile/education/${editingEducationId}`
+          : "/api/profile/education";
+        const method = editingEducationId ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+          location.reload();
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Error saving education", "error");
+        }
+      } catch (err) {
+        showToast("Network error", "error");
+      }
+    });
+</script>
+{% endblock %}
