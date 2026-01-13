@@ -104,6 +104,9 @@
         body {
           padding: 0.5in 0.75in;
         }
+        center {
+          visibility: hidden;
+        }
       }
 
       @media (max-width: 768px) {
@@ -120,6 +123,10 @@
     </style>
   </head>
   <body>
+    <center class="note resume" style="background-color: aliceblue;padding: 6px;">
+      You can print this out by clicking Crtl + P (we will use a btter way
+      later)
+    </center>
     <div class="resume">
       <header class="header">
         <h1>{{ resume.header.name }}</h1>
