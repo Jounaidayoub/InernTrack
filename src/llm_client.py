@@ -73,7 +73,9 @@ class LLMClient:
         )
 
         logger.info(f"LLM client initialized: {self.base_url}, model: {self.model}")
-
+    # TODO: here we are trusting the LLM to return valid JSON, a more robust implementation 
+    # would invove using the structure output api , and validate on top with pydantic
+    # for ref check out this :https://platform.openai.com/docs/guides/structured-outputs , 
     def generate(
         self,
         system_prompt: str,
@@ -116,7 +118,7 @@ class LLMClient:
         except Exception as e:
             logger.error(f"LLM generation failed: {e}")
             raise
-
+    # NOTE: keeping tyhis here until the structred output solution is implemented
     def generate_json(
         self,
         system_prompt: str,

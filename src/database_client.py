@@ -1295,6 +1295,7 @@ class DatabaseClient:
         """Get the user profile (singleton)."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            # TODO: sinec we dont have an auth system , for demo puposes get the first profile
             cursor.execute("SELECT * FROM user_profile LIMIT 1")
             row = cursor.fetchone()
             if row:
