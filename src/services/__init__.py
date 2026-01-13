@@ -26,6 +26,7 @@ from .export_service import ExportService
 from .settings_service import SettingsService
 from .scrape_service import ScrapeService
 from .profile_service import ProfileService
+from .resume_service import ResumeService
 
 __all__ = [
     'ServiceResult',
@@ -37,4 +38,5 @@ __all__ = [
     'SettingsService',
     'ScrapeService',
     'ProfileService',
+    'ResumeService',
 ]
